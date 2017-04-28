@@ -7,9 +7,13 @@ printmainstep "Déclenchement de la release des microservices"
 printstep "Vérification des paramètres d'entrée"
 init_env
 
-echo "REPO_URL: $REPO_URL"
-echo "GITLAB_URL: $GITLAB_URL"
-echo "GITLAB_API_URL: $GITLAB_API_URL"
+DOCKER_DIR=dockererr
+if [ ! -d $DOCKER_DIR ]; then
+    printerror "Impossible de trouver le dossier contenant les unit systemd docker $CONF_DIR dans le projet"
+    exit 1
+else
+    ls -l $DOCKER_DIR
+fi
 
 exit 1
 
