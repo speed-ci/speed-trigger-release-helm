@@ -3,11 +3,12 @@ set -e
 
 printmainstep "Déclenchement de la release des microservices"
 printstep "Vérification des paramètres d'entrée"
-
+source init.sh
 init_env
-REPO_URL=$(git config --get remote.origin.url | sed 's/\.git//g' | sed 's/\/\/.*:.*@/\/\//g')
-GITLAB_URL=`echo $REPO_URL | grep -o 'https\?://[^/]\+/'`
-GITLAB_API_URL="$GITLAB_URL/api/v4"
+
+echo "REPO_URL: $REPO_URL"
+echo "GITLAB_URL: $GITLAB_URL"
+echo "GITLAB_API_URL: $GITLAB_API_URL"
 
 exit 1
 
