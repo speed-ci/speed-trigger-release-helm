@@ -1,9 +1,10 @@
 #!/bin/bash
 set -e
 
+source /init.sh
+
 printmainstep "Déclenchement de la release des microservices"
 printstep "Vérification des paramètres d'entrée"
-source init.sh
 init_env
 
 echo "REPO_URL: $REPO_URL"
