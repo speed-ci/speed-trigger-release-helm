@@ -27,7 +27,7 @@ else
         
             if [[ -n $JOB_RELEASE_ID ]]; then
                 printinfo "Déclenchement de la release sur le projet $PROJECT_DEPLOY_NAME"
-                curl --silent --noproxy '*' --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_DEPLOY_ID/jobs/$JOB_RELEASE_ID/play" | jq
+                curl --silent --noproxy '*' --header "PRIVATE-TOKEN: $GITLAB_TOKEN" -XPOST "$GITLAB_API_URL/projects/$PROJECT_DEPLOY_ID/jobs/$JOB_RELEASE_ID/play" | jq
             else
                 printwarn "Pas de déclenchement de release possible, le projet $PROJECT_DEPLOY_NAME ne dispose pas de job release disponible pour le commit $LAST_COMMIT" 
             fi
