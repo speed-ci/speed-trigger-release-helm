@@ -16,7 +16,7 @@ else
     for SERVICE in $SERVICE_LIST
     do
         PROJECT_DEPLOY_NAME=$(basename "$SERVICE" .service)
-        PROJECT_DEPLOY_ID=`curl --silent --noproxy '*' --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects?search=$SERVICE" | jq .[0].id`
+        PROJECT_DEPLOY_ID=`curl --silent --noproxy '*' --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects?search=$PROJECT_DEPLOY_NAME" | jq .[0].id`
         
         if [[ $PROJECT_DEPLOY_ID != "null" ]]; then
         
