@@ -21,8 +21,8 @@ else
         if [[ $PROJECT_DEPLOY_ID != "null" ]]; then
         
             printstep "Préparation du lancement du job release sur le projet $PROJECT_DEPLOY_NAME"
-            LAST_COMMIT=`curl --silent --noproxy '*' --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_DEPLOY_ID/repository/commits?per_page=1&page=1" | jq .[0].id | tr -d '"'`
-            JOB_RELEASE_ID=`curl --silent --noproxy '*' --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_DEPLOY_ID/jobs" | jq --arg commit_id "$LAST_COMMIT_ID" '.[] | select(.commit.id == "\($commit_id)" and .status == "manual" and .ref == "master")'`
+            LAST_COMMIT_ID=`curl --silent --noproxy '*' --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_DEPLOY_ID/repository/commits?per_page=1&page=1" | jq .[0].id | tr -d '"'`
+            JOB_RELEASE_ID=`curl --silent --noproxy '*' --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_DEPLOY_ID/jobs" | jq --arg commit_id "$LAST_COMMIT_ID" '.[] | select(.commit.id == "\($commit_id)" and .name == "release" and .status == "manual" and .ref == "master")'`
             echo "JOB_RELEASE_ID : $JOB_RELEASE_ID"
         
             if [[ -n $JOB_RELEASE_ID ]]; then
