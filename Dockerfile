@@ -1,1 +1,1 @@
-FROM docker-artifactory-poc.sln.nc/speed/ci-script-base
+FROM docker-artifactory-poc.sln.nc/speed/speed-base
