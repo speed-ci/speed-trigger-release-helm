@@ -6,6 +6,7 @@ source /init.sh
 printmainstep "Déclenchement de la release des microservices"
 printstep "Vérification des paramètres d'entrée"
 init_env
+int_gitlab_api_env
 
 DOCKER_DIR=docker
 if [ ! -d $DOCKER_DIR ]; then
