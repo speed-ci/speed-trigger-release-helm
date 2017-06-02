@@ -22,7 +22,7 @@ else
             printerror "Aucun service docker trouvé respectant le format $SERVICE_LIST"
             exit 1
         fi
-        PROJECT_RELEASE_ID=`curl --silent --noproxy '*' --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects?search=$PROJECT_RELEASE_NAME" | jq .[0].id`
+        PROJECT_RELEASE_ID=`curl --silent --noproxy '*' --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects?search=$PROJECT_RELEASE_NAME" | jq --arg project_namespace "$PROJECT_NAMESPACE" '.[] | select(.namespace.name == "\($project_namespace)")' | jq .[0].id`
         
         if [[ $PROJECT_RELEASE_ID != "null" ]]; then
         
