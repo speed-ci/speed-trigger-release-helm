@@ -19,6 +19,7 @@ else
     do
         echo "SERVICE: $SERVICE"
         PROJECT_DEPLOY_NAME=$(basename "$SERVICE" $SERVICE_EXT)
+        echo "PROJECT_DEPLOY_NAME: $PROJECT_DEPLOY_NAME"
         PROJECT_DEPLOY_ID=`curl --silent --noproxy '*' --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects?search=$PROJECT_DEPLOY_NAME" | jq .[0].id`
         
         if [[ $PROJECT_DEPLOY_ID != "null" ]]; then
