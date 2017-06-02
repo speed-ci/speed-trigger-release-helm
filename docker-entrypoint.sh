@@ -9,7 +9,7 @@ init_env
 int_gitlab_api_env
 
 DOCKER_DIR=docker
-SERVICE_EXT=.service
+SERVICE_EXT=.serv
 if [ ! -d $DOCKER_DIR ]; then
     printerror "Impossible de trouver le dossier $DOCKER_DIR contenant les services docker dans le projet"
     exit 1
@@ -17,9 +17,7 @@ else
     SERVICE_LIST=$DOCKER_DIR/*$SERVICE_EXT
     for SERVICE in $SERVICE_LIST
     do
-        echo "SERVICE: $SERVICE"
         PROJECT_DEPLOY_NAME=$(basename "$SERVICE" $SERVICE_EXT)
-        echo "PROJECT_DEPLOY_NAME: $PROJECT_DEPLOY_NAME"
         if [[ $PROJECT_DEPLOY_NAME == "*" ]]; then
             printerror "Aucun service docker trouvé respectant le format $SERVICE_LIST"
             exit 1
