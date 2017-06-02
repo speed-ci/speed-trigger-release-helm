@@ -9,14 +9,15 @@ init_env
 int_gitlab_api_env
 
 DOCKER_DIR=docker
+SERVICE_EXT=.service
 if [ ! -d $DOCKER_DIR ]; then
     printerror "Impossible de trouver le dossier $DOCKER_DIR contenant les services docker dans le projet"
     exit 1
 else
-    SERVICE_LIST=$DOCKER_DIR/*.service
+    SERVICE_LIST=$DOCKER_DIR/*$SERVICE_EXT
     for SERVICE in $SERVICE_LIST
     do
-        PROJECT_DEPLOY_NAME=$(basename "$SERVICE" .service)
+        PROJECT_DEPLOY_NAME=$(basename "$SERVICE" $SERVICE_EXT)
         PROJECT_DEPLOY_ID=`curl --silent --noproxy '*' --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects?search=$PROJECT_DEPLOY_NAME" | jq .[0].id`
         
         if [[ $PROJECT_DEPLOY_ID != "null" ]]; then
