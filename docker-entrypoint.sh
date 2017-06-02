@@ -17,6 +17,7 @@ else
     SERVICE_LIST=$DOCKER_DIR/*$SERVICE_EXT
     for SERVICE in $SERVICE_LIST
     do
+        echo "SERVICE: $SERVICE"
         PROJECT_DEPLOY_NAME=$(basename "$SERVICE" $SERVICE_EXT)
         PROJECT_DEPLOY_ID=`curl --silent --noproxy '*' --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects?search=$PROJECT_DEPLOY_NAME" | jq .[0].id`
         
