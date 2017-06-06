@@ -7,6 +7,7 @@ printmainstep "Déclenchement de la release des microservices"
 printstep "Vérification des paramètres d'entrée"
 init_env
 int_gitlab_api_env
+GITLAB_CI_USER="gitlab-ci-sln"
 
 DOCKER_DIR=docker
 SERVICE_EXT=.serv
