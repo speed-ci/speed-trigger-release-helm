@@ -27,9 +27,6 @@ do
     
     printmainstep "Déclenchement de la release du microservice $PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME"
     
-    printinfo "PROJECT_NAMESPACE    : $PROJECT_NAMESPACE"
-    printinfo "PROJECT_RELEASE_NAME : $PROJECT_RELEASE_NAME"
-    
     PROJECT_RELEASE_ID=`curl --silent --noproxy '*' --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects?search=$PROJECT_RELEASE_NAME" | jq --arg project_namespace "$PROJECT_NAMESPACE" '.[] | select(.namespace.name == "\($project_namespace)")' | jq .id`
     
     if [[ $PROJECT_RELEASE_ID != "null" ]]; then
@@ -57,6 +54,7 @@ do
                 printerror "Les étapes préalables à la release doivent être effectuées avec succès, release interrompue"
                 exit 1
             elif [[ $JOB_RELEASE_STATUS == "success" ]]; then
+                echo ""
                 printinfo "Le job release est déjà un succès, relancement inutile"
             elif [[ $JOB_RELEASE_STATUS == "manual" ]]; then
                 curl --silent --noproxy '*' --header "PRIVATE-TOKEN: $GITLAB_TOKEN" -XPOST "$GITLAB_API_URL/projects/$PROJECT_RELEASE_ID/jobs/$JOB_RELEASE_ID/play" | jq .
