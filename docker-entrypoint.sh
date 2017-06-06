@@ -37,10 +37,15 @@ else
         
             if [[ $JOB_RELEASE_ID != "" ]]; then
                 printstep "Déclenchement de la release sur le projet $PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME pour le commit $LAST_COMMIT_ID"
-                echo "LAST_PIPELINE_ID : $LAST_PIPELINE_ID"
-                echo "JOB_RELEASE_ID   : $JOB_RELEASE_ID"
-                
-                curl --silent --noproxy '*' --header "PRIVATE-TOKEN: $GITLAB_TOKEN" -XPOST "$GITLAB_API_URL/projects/$PROJECT_RELEASE_ID/jobs/$JOB_RELEASE_ID/play" | jq .
+                JOB_RELEASE_STATUS=`curl --silent --noproxy '*' --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_RELEASE_ID/jobs/$JOB_RELEASE_ID" | jq .status`
+                printinfo "LAST_PIPELINE_ID   : $LAST_PIPELINE_ID"
+                printinfo "JOB_RELEASE_ID     : $JOB_RELEASE_ID"
+                printinfo "JOB_RELEASE_STATUS : $JOB_RELEASE_STATUS"
+                if [[ $JOB_RELEASE_ID == "manual" ]]; then
+                    curl --silent --noproxy '*' --header "PRIVATE-TOKEN: $GITLAB_TOKEN" -XPOST "$GITLAB_API_URL/projects/$PROJECT_RELEASE_ID/jobs/$JOB_RELEASE_ID/play" | jq .
+                else
+                    curl --silent --noproxy '*' --header "PRIVATE-TOKEN: $GITLAB_TOKEN" -XPOST "$GITLAB_API_URL/projects/$PROJECT_RELEASE_ID/jobs/$JOB_RELEASE_ID/retry" | jq .
+                fi
             else
                 printwarn "Pas de déclenchement de release possible, le projet $PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME ne dispose pas de job release disponible pour le commit $LAST_COMMIT_ID" 
             fi
