@@ -50,9 +50,12 @@ else
                 printinfo "LAST_PIPELINE_ID   : $LAST_PIPELINE_ID"
                 printinfo "JOB_RELEASE_ID     : $JOB_RELEASE_ID"
                 printinfo "JOB_RELEASE_STATUS : $JOB_RELEASE_STATUS"
-                if [[ $JOB_RELEASE_ID == "success" ]]; then
+                if [[ $JOB_RELEASE_STATUS == "skipped" ]]; then
+                    printerror "Les étapes préalables à la release doivent être effectuées avec succès, release interrompue"
+                    exit 1
+                elif [[ $JOB_RELEASE_STATUS == "success" ]]; then
                     printinfo "Le job release est déjà un succès, relancement inutile"
-                elif [[ $JOB_RELEASE_ID == "manual" ]]; then
+                elif [[ $JOB_RELEASE_STATUS == "manual" ]]; then
                     curl --silent --noproxy '*' --header "PRIVATE-TOKEN: $GITLAB_TOKEN" -XPOST "$GITLAB_API_URL/projects/$PROJECT_RELEASE_ID/jobs/$JOB_RELEASE_ID/play" | jq .
                 else
                     curl --silent --noproxy '*' --header "PRIVATE-TOKEN: $GITLAB_TOKEN" -XPOST "$GITLAB_API_URL/projects/$PROJECT_RELEASE_ID/jobs/$JOB_RELEASE_ID/retry" | jq .
