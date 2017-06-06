@@ -101,6 +101,7 @@ do
     sleep $POLLLING_PERIOD
 done
 
+printmainstep "Affichage des résultats des jobs de release"
 for SERVICE in $SERVICE_LIST
 do
     PROJECT_RELEASE_NAME=$(basename "$SERVICE" $SERVICE_EXT)
