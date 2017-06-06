@@ -16,6 +16,9 @@ if [ ! -d $DOCKER_DIR ]; then
     exit 1
 fi    
 
+declare -A PROJECT_RELEASE_IDS
+declare -A JOB_RELEASE_IDS
+
 SERVICE_LIST=$DOCKER_DIR/*$SERVICE_EXT
 for SERVICE in $SERVICE_LIST
 do
@@ -28,6 +31,7 @@ do
     printmainstep "Déclenchement de la release du microservice $PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME"
     
     PROJECT_RELEASE_ID=`curl --silent --noproxy '*' --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects?search=$PROJECT_RELEASE_NAME" | jq --arg project_namespace "$PROJECT_NAMESPACE" '.[] | select(.namespace.name == "\($project_namespace)")' | jq .id`
+    PROJECT_RELEASE_IDS[$PROJECT_RELEASE_NAME]=$PROJECT_RELEASE_ID
     
     if [[ $PROJECT_RELEASE_ID != "null" ]]; then
     
@@ -43,6 +47,7 @@ do
         LAST_COMMIT_ID=`curl --silent --noproxy '*' --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_RELEASE_ID/repository/commits?per_page=1&page=1" | jq .[0].id | tr -d '"'`
         LAST_PIPELINE_ID=`curl --silent --noproxy '*' --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_RELEASE_ID/pipelines?per_page=1&page=1" | jq .[0].id  | tr -d '"'`
         JOB_RELEASE_ID=`curl --silent --noproxy '*' --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_RELEASE_ID/jobs" | jq --arg commit_id "$LAST_COMMIT_ID" --arg pipeline_id "$LAST_PIPELINE_ID" '.[] | select(.commit.id == "\($commit_id)" and (.pipeline.id | tostring  == "\($pipeline_id)")  and .name == "release" and .ref == "master")' | jq .id | head -1`
+        JOB_RELEASE_IDS[$PROJECT_RELEASE_NAME]=$JOB_RELEASE_ID
     
         if [[ $JOB_RELEASE_ID != "" ]]; then
             printstep "Déclenchement de la release sur le projet $PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME pour le commit $LAST_COMMIT_ID"
@@ -50,6 +55,8 @@ do
             printinfo "LAST_PIPELINE_ID   : $LAST_PIPELINE_ID"
             printinfo "JOB_RELEASE_ID     : $JOB_RELEASE_ID"
             printinfo "JOB_RELEASE_STATUS : $JOB_RELEASE_STATUS"
+            printinfo "JOB_RELEASE_ID MAP     : ${JOB_RELEASE_IDS[$PROJECT_RELEASE_NAME]}"
+            printinfo "PROJECT_RELEASE_ID MAP : ${PROJECT_RELEASE_IDS[$PROJECT_RELEASE_NAME]}"
             if [[ $JOB_RELEASE_STATUS == "skipped" ]]; then
                 printerror "Les étapes préalables à la release doivent être effectuées avec succès, release interrompue"
                 exit 1
