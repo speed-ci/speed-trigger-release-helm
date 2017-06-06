@@ -87,11 +87,10 @@ do
 done
 
 sleep $POLLLING_PERIOD
-HAS_RUNNING=false
-HAS_FAILED_JOB=false
 
 while :
 do
+    HAS_RUNNING=false
     for SERVICE in $SERVICE_LIST
     do
         PROJECT_RELEASE_NAME=$(basename "$SERVICE" $SERVICE_EXT)
@@ -109,6 +108,7 @@ do
 done
 
 printmainstep "Affichage des résultats des jobs de release"
+HAS_FAILED_JOB=false
 for SERVICE in $SERVICE_LIST
 do
     PROJECT_RELEASE_NAME=$(basename "$SERVICE" $SERVICE_EXT)
