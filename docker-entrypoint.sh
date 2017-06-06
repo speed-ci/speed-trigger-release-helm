@@ -99,10 +99,12 @@ do
         JOB_RELEASE_ID=${JOB_RELEASE_IDS[$PROJECT_RELEASE_NAME]}
         JOB_RELEASE_STATUS=`curl --silent --noproxy '*' --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_RELEASE_ID/jobs/$JOB_RELEASE_ID" | jq .status | tr -d '"'`
         JOB_RELEASE_STATUSES[$PROJECT_RELEASE_NAME]=$JOB_RELEASE_STATUS
-        if [[ $JOB_RELEASE_STATUS == "pending" ]] || [[ $JOB_RELEASE_STATUS == "running" ]]; then HAS_RUNNING=true; fi 
+        if [[ $JOB_RELEASE_STATUS == "pending" ]] || [[ $JOB_RELEASE_STATUS == "running" ]]; then HAS_RUNNING=true; fi
+        printinfo "JOB_RELEASE_STATUS : $JOB_RELEASE_STATUS"
     done
     
     if [[ $HAS_RUNNING == "false" ]]; then break; fi
+    printinfo "HAS_RUNNING : $HAS_RUNNING : [[ $HAS_RUNNING == "false" ]]"
     sleep $POLLLING_PERIOD
 done
 
