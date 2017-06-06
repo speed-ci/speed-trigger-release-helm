@@ -46,7 +46,7 @@ else
         
             if [[ $JOB_RELEASE_ID != "" ]]; then
                 printstep "Déclenchement de la release sur le projet $PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME pour le commit $LAST_COMMIT_ID"
-                JOB_RELEASE_STATUS=`curl --silent --noproxy '*' --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_RELEASE_ID/jobs/$JOB_RELEASE_ID" | jq .status`
+                JOB_RELEASE_STATUS=`curl --silent --noproxy '*' --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_RELEASE_ID/jobs/$JOB_RELEASE_ID" | jq .status | tr -d '"'`
                 printinfo "LAST_PIPELINE_ID   : $LAST_PIPELINE_ID"
                 printinfo "JOB_RELEASE_ID     : $JOB_RELEASE_ID"
                 printinfo "JOB_RELEASE_STATUS : $JOB_RELEASE_STATUS"
