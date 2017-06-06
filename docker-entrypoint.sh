@@ -94,14 +94,12 @@ do
         JOB_RELEASE_ID=${JOB_RELEASE_IDS[$PROJECT_RELEASE_NAME]}
         JOB_RELEASE_STATUS=`curl --silent --noproxy '*' --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_RELEASE_ID/jobs/$JOB_RELEASE_ID" | jq .status | tr -d '"'`
         JOB_RELEASE_STATUSES[$PROJECT_RELEASE_NAME]=$JOB_RELEASE_STATUS
-        if [[ $JOB_STATUS == "pending" ]] || [[ $JOB_STATUS == "running" ]]; then HAS_RUNNING=true; fi 
+        if [[ $JOB_RELEASE_STATUS == "pending" ]] || [[ $JOB_RELEASE_STATUS == "running" ]]; then HAS_RUNNING=true; fi 
     done
     
     if [[ $HAS_RUNNING == "false" ]]; then break; fi
     sleep $POLLLING_PERIOD
 done
-
-echo "HAS_RUNNING : $HAS_RUNNING"
 
 for SERVICE in $SERVICE_LIST
 do
@@ -109,10 +107,16 @@ do
     PROJECT_RELEASE_ID=${PROJECT_RELEASE_IDS[$PROJECT_RELEASE_NAME]}
     JOB_RELEASE_ID=${JOB_RELEASE_IDS[$PROJECT_RELEASE_NAME]}
     JOB_RELEASE_STATUS=`curl --silent --noproxy '*' --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_RELEASE_ID/jobs/$JOB_RELEASE_ID" | jq .status | tr -d '"'`
-    if [[ $JOB_STATUS != "success" ]]; then HAS_FAILED_JOB=true; fi
+    echo ""
+    printinfo "Status final du job release du projet $PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME : $JOB_RELEASE_STATUS"
+    printinfo "Lien d'accès aux logs distants : $GITLAB_URL/$PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME/builds/$JOB_RELEASE_ID"
+    
+    if [[ $JOB_RELEASE_STATUS != "success" ]]; then HAS_FAILED_JOB=true; fi
 done    
 
+echo "HAS_RUNNING : $HAS_RUNNING"
 echo "HAS_FAILED_JOB : $HAS_FAILED_JOB"
+
 
 if [[ $HAS_FAILED_JOB == "true" ]]; then exit 1; fi
 
