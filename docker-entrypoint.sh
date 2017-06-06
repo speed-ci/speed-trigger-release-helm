@@ -3,7 +3,7 @@ set -e
 
 source /init.sh
 
-printmainstep "Déclenchement de la release des microservices"
+printmainstep "Déclenchement de la release de tous les microservices"
 printstep "Vérification des paramètres d'entrée"
 init_env
 int_gitlab_api_env
@@ -23,6 +23,8 @@ else
             printerror "Aucun service docker trouvé respectant le format $SERVICE_LIST"
             exit 1
         fi
+        
+        printmainstep "Déclenchement de la release du microservice $PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME"
         
         printinfo "PROJECT_NAMESPACE    : $PROJECT_NAMESPACE"
         printinfo "PROJECT_RELEASE_NAME : $PROJECT_RELEASE_NAME"
