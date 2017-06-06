@@ -8,6 +8,7 @@ printstep "Vérification des paramètres d'entrée"
 init_env
 int_gitlab_api_env
 GITLAB_CI_USER="gitlab-ci-sln"
+POLLLING_PERIOD=5
 
 DOCKER_DIR=docker
 SERVICE_EXT=.serv
@@ -18,6 +19,8 @@ fi
 
 declare -A PROJECT_RELEASE_IDS
 declare -A JOB_RELEASE_IDS
+declare -A JOB_RELEASE_STATUSES
+
 
 SERVICE_LIST=$DOCKER_DIR/*$SERVICE_EXT
 for SERVICE in $SERVICE_LIST
@@ -55,8 +58,7 @@ do
             printinfo "LAST_PIPELINE_ID   : $LAST_PIPELINE_ID"
             printinfo "JOB_RELEASE_ID     : $JOB_RELEASE_ID"
             printinfo "JOB_RELEASE_STATUS : $JOB_RELEASE_STATUS"
-            printinfo "JOB_RELEASE_ID MAP     : ${JOB_RELEASE_IDS[$PROJECT_RELEASE_NAME]}"
-            printinfo "PROJECT_RELEASE_ID MAP : ${PROJECT_RELEASE_IDS[$PROJECT_RELEASE_NAME]}"
+
             if [[ $JOB_RELEASE_STATUS == "skipped" ]]; then
                 printerror "Les étapes préalables à la release doivent être effectuées avec succès, release interrompue"
                 exit 1
@@ -78,4 +80,39 @@ do
         exit 1
     fi
 done
+
+sleep $POLLLING_PERIOD
+HAS_RUNNING=false
+HAS_FAILED_JOB=false
+
+while :
+do
+    for SERVICE in $SERVICE_LIST
+    do
+        PROJECT_RELEASE_NAME=$(basename "$SERVICE" $SERVICE_EXT)
+        PROJECT_RELEASE_ID=${PROJECT_RELEASE_IDS[$PROJECT_RELEASE_NAME]}
+        JOB_RELEASE_ID=${JOB_RELEASE_IDS[$PROJECT_RELEASE_NAME]}
+        JOB_RELEASE_STATUS=`curl --silent --noproxy '*' --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_RELEASE_ID/jobs/$JOB_RELEASE_ID" | jq .status | tr -d '"'`
+        JOB_RELEASE_STATUSES[$PROJECT_RELEASE_NAME]=$JOB_RELEASE_STATUS
+        if [[ $JOB_STATUS == "pending" ]] || [[ $JOB_STATUS == "running" ]]; then HAS_RUNNING=true; fi 
+    done
+    
+    if [[ $HAS_RUNNING == "false" ]]; then break; fi
+    sleep $POLLLING_PERIOD
+done
+
+echo "HAS_RUNNING : $HAS_RUNNING"
+
+for SERVICE in $SERVICE_LIST
+do
+    PROJECT_RELEASE_NAME=$(basename "$SERVICE" $SERVICE_EXT)
+    PROJECT_RELEASE_ID=${PROJECT_RELEASE_IDS[$PROJECT_RELEASE_NAME]}
+    JOB_RELEASE_ID=${JOB_RELEASE_IDS[$PROJECT_RELEASE_NAME]}
+    JOB_RELEASE_STATUS=`curl --silent --noproxy '*' --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_RELEASE_ID/jobs/$JOB_RELEASE_ID" | jq .status | tr -d '"'`
+    if [[ $JOB_STATUS != "success" ]]; then HAS_FAILED_JOB=true; fi
+done    
+
+echo "HAS_FAILED_JOB : $HAS_FAILED_JOB"
+
+if [[ $HAS_FAILED_JOB == "true" ]]; then exit 1; fi
 
