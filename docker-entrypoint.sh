@@ -120,6 +120,9 @@ do
     printinfo "Lien d'accès aux logs distants : $GITLAB_URL/$PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME/builds/$JOB_RELEASE_ID"
     echo ""
     
+    PROJECT_RELEASE_VERSION=`curl --silent --noproxy '*' --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_RELEASE_ID/repository/tags" | jq .[0].name | tr -d '"'`
+    printinfo "Version applicative : $PROJECT_RELEASE_VERSION"
+    
     if [[ $JOB_RELEASE_STATUS != "success" ]]; then HAS_FAILED_JOB=true; fi
 done    
 
