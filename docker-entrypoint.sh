@@ -7,11 +7,12 @@ printmainstep "Déclenchement de la release de tous les microservices"
 printstep "Vérification des paramètres d'entrée"
 init_env
 int_gitlab_api_env
+
 GITLAB_CI_USER="gitlab-ci-sln"
 POLLLING_PERIOD=5
-
 DOCKER_DIR=docker
 SERVICE_EXT=.serv
+
 if [ ! -d $DOCKER_DIR ]; then
     printerror "Impossible de trouver le dossier $DOCKER_DIR contenant les services docker dans le projet"
     exit 1
@@ -23,6 +24,14 @@ declare -A PROJECT_RELEASE_VERSIONS
 declare -A JOB_RELEASE_IDS
 declare -A JOB_RELEASE_STATUSES
 
+printstep "Préparation du projet $PROJECT_NAMESPACE/$PROJECT_NAME"
+PROJECT_ID=`curl --silent --noproxy '*' --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects?search=$PROJECT_NAME" | jq --arg project_namespace "$PROJECT_NAMESPACE" '.[] | select(.namespace.name == "\($project_namespace)")' | jq .id`
+RELEASE_BRANCH=`curl --silent --noproxy '*' --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_ID/repository/branches/release" | jq .name`
+
+if [[ $RELEASE_BRANCH == "null" ]]; then
+	printinfo "Création de la branch release manquante sur le projet $PROJECT_NAMESPACE/$PROJECT_NAME"
+	curl --silent --noproxy '*' --request POST --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_ID/repository/branches" -d "branch=release" -d "ref=master" | jq
+fi
 
 SERVICE_LIST=$DOCKER_DIR/*$SERVICE_EXT
 for SERVICE in $SERVICE_LIST
