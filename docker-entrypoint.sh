@@ -25,6 +25,12 @@ declare -A JOB_RELEASE_IDS
 declare -A JOB_RELEASE_STATUSES
 
 printstep "Préparation du projet $PROJECT_NAMESPACE/$PROJECT_NAME"
+
+if [[ -z $RELEASE_VERSION ]]; then
+    printerror "La variable secrète RELEASE_VERSION doit être renseignée par un utilisateur master du projet dans le menu Settings/CI/CD Pipelines" 
+    exit 1
+fi
+
 PROJECT_ID=`curl --silent --noproxy '*' --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects?search=$PROJECT_NAME" | jq --arg project_namespace "$PROJECT_NAMESPACE" '.[] | select(.namespace.name == "\($project_namespace)")' | jq .id`
 RELEASE_BRANCH=`curl --silent --noproxy '*' --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_ID/repository/branches/release" | jq .name`
 
