@@ -33,8 +33,6 @@ fi
 
 PROJECT_ID=`curl --silent --noproxy '*' --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects?search=$PROJECT_NAME" | jq --arg project_namespace "$PROJECT_NAMESPACE" '.[] | select(.namespace.name == "\($project_namespace)")' | jq .id`
 FOUND_TAG=`curl --silent --noproxy '*' --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_ID/repository/tags/$RELEASE_VERSION" | jq .name | tr -d '"'`
-echo "RELEASE_VERSION : $RELEASE_VERSION"
-echo "FOUND_TAG : $FOUND_TAG"
 if [[ $FOUND_TAG != "null" ]]; then
     printerror "La version $FOUND_TAG du projet $PROJECT_NAMESPACE/$PROJECT_NAME existe déjà" 
     printerror "Un utilisateur master du projet doit mettre à jour à la version suivante la variable secrète RELEASE_VERSION dans le menu Settings / CI/CD Pipelines" 
@@ -180,9 +178,6 @@ do
         HAS_FAILED_JOB=true;
     fi
 done    
-
-echo "HAS_RUNNING : $HAS_RUNNING"
-echo "HAS_FAILED_JOB : $HAS_FAILED_JOB"
 
 if [[ $HAS_FAILED_JOB == "true" ]]; then
     printerror "Un des jobs de release est en erreur, arrêt du job trigger release"
