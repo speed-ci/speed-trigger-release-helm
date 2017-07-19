@@ -187,11 +187,11 @@ if [[ $HAS_FAILED_JOB == "true" ]]; then
     exit 1;
 fi
 
-echo "PAYLOAD : $PAYLOAD"
-
 printmainstep "Mise à jour des fichiers de services dans la branche release avec les versions des microservices"
+echo "PAYLOAD : $PAYLOAD"
 curl --silent --noproxy '*' --request POST --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_ID/repository/commits" --header "Content-Type: application/json" -d "$PAYLOAD"| jq .
 
 printmainstep "Création du tag $RELEASE_VERSION sur le projet $PROJECT_NAMESPACE/$PROJECT_NAME"
+echo "CHANGELOG : $CHANGELOG"
 curl --silent --noproxy '*' --request POST --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_ID/repository/tags" -d "tag_name=$RELEASE_VERSION" -d "ref=release" --data-urlencode "release_description=$CHANGELOG" | jq .
 
