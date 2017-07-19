@@ -32,6 +32,8 @@ if [[ -z $RELEASE_VERSION ]]; then
 fi
 
 FOUND_TAG=`curl --silent --noproxy '*' --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_ID/repository/tags/$RELEASE_VERSION" | jq .name | tr -d '"'`
+echo "RELEASE_VERSION : $RELEASE_VERSION"
+echo "FOUND_TAG : $FOUND_TAG"
 if [[ $FOUND_TAG != "null" ]]; then
     printerror "La version $FOUND_TAG du projet $PROJECT_NAMESPACE/$PROJECT_NAME existe déjà, un utilisateur master du projet doit mettre à jour la variable secrète RELEASE_VERSION dans le menu Settings / CI/CD Pipelines" 
     exit 1
