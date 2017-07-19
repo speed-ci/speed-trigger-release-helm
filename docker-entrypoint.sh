@@ -184,6 +184,8 @@ if [[ $HAS_FAILED_JOB == "true" ]]; then
     exit 1;
 fi
 
+echo "PAYLOAD : $PAYLOAD"
+
 printmainstep "Mise à jour des fichiers de services dans la branche release avec les versions des microservices"
 curl --silent --noproxy '*' --request POST --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_ID/repository/commits" --header "Content-Type: application/json" -d "$PAYLOAD"| jq .
 
