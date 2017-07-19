@@ -173,9 +173,9 @@ do
     echo "ACTION_NUM : $ACTION_NUM"
     CONTENT=`cat $SERVICE | sed -e "s/$PROJECT_NAMESPACE\/$PROJECT_RELEASE_NAME.*/$PROJECT_NAMESPACE\/$PROJECT_RELEASE_NAME:$PROJECT_RELEASE_VERSION/g"`
     echo "CONTENT : $CONTENT"
-    PAYLOAD=`jq --arg action_num $ACTION_NUM --arg action "update" '. | .actions[$action_num].action=$action' <<< $PAYLOAD`
-    PAYLOAD=`jq --arg action_num $ACTION_NUM --arg content "$CONTENT" '. | .actions[$action_num].content=$content' <<< $PAYLOAD`
-    PAYLOAD=`jq --arg action_num $ACTION_NUM --arg file_path "$SERVICE" '. | .actions[$action_num].file_path=$file_path' <<< $PAYLOAD`
+    PAYLOAD=`jq --arg action_num "$ACTION_NUM" --arg action "update" '. | .actions[$action_num|tonumber].action=$action' <<< $PAYLOAD`
+    PAYLOAD=`jq --arg action_num "$ACTION_NUM" --arg content "$CONTENT" '. | .actions[$action_num|tonumber].content=$content' <<< $PAYLOAD`
+    PAYLOAD=`jq --arg action_num "$ACTION_NUM" --arg file_path "$SERVICE" '. | .actions[$action_num|tonumber].file_path=$file_path' <<< $PAYLOAD`
     
     if [[ $JOB_RELEASE_STATUS != "success" ]]; then HAS_FAILED_JOB=true; fi
 done    
