@@ -144,6 +144,15 @@ done
 
 printmainstep "Affichage des résultats des jobs de release"
 HAS_FAILED_JOB=false
+PAYLOAD=$(cat << 'JSON'
+{
+  "branch": "release",
+  "commit_message": "Update services versions for version $RELEASE_VERSION",
+  "actions": []
+}
+JSON
+)
+
 for SERVICE in $SERVICE_LIST
 do
     PROJECT_RELEASE_NAME=$(basename "$SERVICE" $SERVICE_EXT)
@@ -159,7 +168,13 @@ do
     PROJECT_RELEASE_VERSIONS[$PROJECT_RELEASE_NAME]=$PROJECT_RELEASE_VERSION
     
     printinfo "Version applicative générée : $PROJECT_RELEASE_VERSION"
-    echo ""
+	ACTION_NUM=`echo $PAYLOAD | jq '.actions | length'`
+	CONTENT=`cat $SERVICE | sed -e "s/$PROJECT_NAMESPACE\/$PROJECT_RELEASE_NAME.*/$PROJECT_NAMESPACE\/$PROJECT_RELEASE_NAME:$PROJECT_RELEASE_VERSION"`
+    echo "ACTION_NUM : $ACTION_NUM"
+    echo "CONTENT : $CONTENT"
+	PAYLOAD=`jq --arg action_num $ACTION_NUM --arg action "update" '. | .actions[$action_num].action=$action' <<< $PAYLOAD`
+	PAYLOAD=`jq --arg action_num $ACTION_NUM --arg content "$CONTENT" '. | .actions[$action_num].content=$content' <<< $PAYLOAD`
+	PAYLOAD=`jq --arg action_num $ACTION_NUM --arg file_path "$SERVICE" '. | .actions[$action_num].file_path=$file_path' <<< $PAYLOAD`
     
     if [[ $JOB_RELEASE_STATUS != "success" ]]; then HAS_FAILED_JOB=true; fi
 done    
@@ -167,6 +182,8 @@ done
 echo "HAS_RUNNING : $HAS_RUNNING"
 echo "HAS_FAILED_JOB : $HAS_FAILED_JOB"
 
-
 if [[ $HAS_FAILED_JOB == "true" ]]; then exit 1; fi
+
+echo "PAYLOAD : $PAYLOAD"
+curl --silent --noproxy '*' --request POST --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_ID/repository/commits" --header "Content-Type: application/json" -d "$PAYLOAD"| jq .
 
