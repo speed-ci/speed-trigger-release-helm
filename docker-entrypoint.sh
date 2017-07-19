@@ -147,11 +147,12 @@ HAS_FAILED_JOB=false
 PAYLOAD=$(cat << 'JSON'
 {
   "branch": "release",
-  "commit_message": "Update services versions for version $RELEASE_VERSION",
   "actions": []
 }
 JSON
 )
+
+PAYLOAD=`jq --arg commit_message "Update services versions for version $RELEASE_VERSION" '. | .commit_message=$commit_message' <<< $PAYLOAD`
 
 for SERVICE in $SERVICE_LIST
 do
