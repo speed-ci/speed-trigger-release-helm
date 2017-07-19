@@ -31,6 +31,14 @@ RELEASE_BRANCH=`curl --silent --noproxy '*' --header "PRIVATE-TOKEN: $GITLAB_TOK
 if [[ $RELEASE_BRANCH == "null" ]]; then
 	printinfo "Création de la branch release manquante sur le projet $PROJECT_NAMESPACE/$PROJECT_NAME"
 	curl --silent --noproxy '*' --request POST --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_ID/repository/branches" -d "branch=release" -d "ref=master" | jq .
+
+else
+	LAST_NEW_COMMIT=`curl --silent --noproxy '*' --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_ID/repository/compare?from=release&to=master" | jq .commit.id | tr -d '"'`
+	if [[ $LAST_NEW_COMMIT != "null" ]]; then
+		printinfo "Mise à jour de la branch release avec les derniers commits de master"
+		MR_IID=`curl --silent --noproxy '*' --request POST --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_ID/merge_requests" -d "source_branch=master" -d "target_branch=release" -d "title=chore(release): Update release branch with $LAST_NEW_COMMIT to prepare release" | jq .iid`
+		curl --silent --noproxy '*' --request PUT --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_ID/merge_requests/$MR_IID/merge" | jq .
+	fi
 fi
 
 SERVICE_LIST=$DOCKER_DIR/*$SERVICE_EXT
