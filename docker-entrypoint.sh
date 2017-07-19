@@ -171,7 +171,7 @@ do
     echo "SERVICE : $SERVICE"
     ACTION_NUM=`echo $PAYLOAD | jq '.actions | length'`
     echo "ACTION_NUM : $ACTION_NUM"
-    CONTENT=`cat $SERVICE | sed -e "s/$PROJECT_NAMESPACE\/$PROJECT_RELEASE_NAME.*/$PROJECT_NAMESPACE\/$PROJECT_RELEASE_NAME:$PROJECT_RELEASE_VERSION"`
+    CONTENT=`cat $SERVICE | sed -e "s/$PROJECT_NAMESPACE\/$PROJECT_RELEASE_NAME.*/$PROJECT_NAMESPACE\/$PROJECT_RELEASE_NAME:$PROJECT_RELEASE_VERSION/g"`
     echo "CONTENT : $CONTENT"
     PAYLOAD=`jq --arg action_num $ACTION_NUM --arg action "update" '. | .actions[$action_num].action=$action' <<< $PAYLOAD`
     PAYLOAD=`jq --arg action_num $ACTION_NUM --arg content "$CONTENT" '. | .actions[$action_num].content=$content' <<< $PAYLOAD`
