@@ -150,6 +150,7 @@ PAYLOAD=$(cat << 'JSON'
 JSON
 )
 
+CHANGELOG="### Versions des microservices\n"
 PAYLOAD=`jq --arg commit_message "Update services versions for version $RELEASE_VERSION" '. | .commit_message=$commit_message' <<< $PAYLOAD`
 
 for SERVICE in $SERVICE_LIST
@@ -173,6 +174,8 @@ do
     PAYLOAD=`jq --arg action_num "$ACTION_NUM" --arg content "$CONTENT" '. | .actions[$action_num|tonumber].content=$content' <<< $PAYLOAD`
     PAYLOAD=`jq --arg action_num "$ACTION_NUM" --arg file_path "$SERVICE" '. | .actions[$action_num|tonumber].file_path=$file_path' <<< $PAYLOAD`
     
+    CHANGELOG="$CHANGELOG - $PROJECT_RELEASE_NAME [$PROJECT_RELEASE_VERSION]($GITLAB_URL/$PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME/tags/$PROJECT_RELEASE_VERSION)\n"
+    
     if [[ $JOB_RELEASE_STATUS != "success" ]]; then 
         printerror "Le job de release du projet $PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME est en erreur"
         HAS_FAILED_JOB=true;
@@ -190,5 +193,5 @@ printmainstep "Mise à jour des fichiers de services dans la branche release ave
 curl --silent --noproxy '*' --request POST --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_ID/repository/commits" --header "Content-Type: application/json" -d "$PAYLOAD"| jq .
 
 printmainstep "Création du tag $RELEASE_VERSION sur le projet $PROJECT_NAMESPACE/$PROJECT_NAME"
-curl --silent --noproxy '*' --request POST --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_ID/repository/tags" -d "tag_name=$RELEASE_VERSION" -d "ref=release" | jq .
+curl --silent --noproxy '*' --request POST --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_ID/repository/tags" -d "tag_name=$RELEASE_VERSION" -d "ref=release" --data-urlencode "release_description=$CHANGELOG" | jq .
 
