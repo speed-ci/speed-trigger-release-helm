@@ -27,7 +27,7 @@ declare -A JOB_RELEASE_STATUSES
 printstep "Préparation du projet $PROJECT_NAMESPACE/$PROJECT_NAME"
 
 if [[ -z $RELEASE_VERSION ]]; then
-    printerror "La variable secrète RELEASE_VERSION doit être renseignée par un utilisateur master du projet $PROJECT_NAMESPACE/$PROJECT_NAME dans le menu Settings/CI/CD Pipelines" 
+    printerror "La variable secrète RELEASE_VERSION doit être renseignée par un utilisateur master du projet $PROJECT_NAMESPACE/$PROJECT_NAME dans le menu Settings / CI/CD Pipelines" 
     exit 1
 fi
 
