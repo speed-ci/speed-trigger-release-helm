@@ -150,7 +150,7 @@ PAYLOAD=$(cat << 'JSON'
 JSON
 )
 
-CHANGELOG="### Versions des microservices\n"
+CHANGELOG=$(printf "### Versions des microservices\n")
 PAYLOAD=`jq --arg commit_message "Update services versions for version $RELEASE_VERSION" '. | .commit_message=$commit_message' <<< $PAYLOAD`
 
 for SERVICE in $SERVICE_LIST
@@ -174,7 +174,7 @@ do
     PAYLOAD=`jq --arg action_num "$ACTION_NUM" --arg content "$CONTENT" '. | .actions[$action_num|tonumber].content=$content' <<< $PAYLOAD`
     PAYLOAD=`jq --arg action_num "$ACTION_NUM" --arg file_path "$SERVICE" '. | .actions[$action_num|tonumber].file_path=$file_path' <<< $PAYLOAD`
     
-    CHANGELOG="$CHANGELOG - $PROJECT_RELEASE_NAME [$PROJECT_RELEASE_VERSION]($GITLAB_URL/$PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME/tags/$PROJECT_RELEASE_VERSION)\n"
+    CHANGELOG=$(printf "$CHANGELOG\n - $PROJECT_RELEASE_NAME [$PROJECT_RELEASE_VERSION]($GITLAB_URL/$PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME/tags/$PROJECT_RELEASE_VERSION)") "$CHANGELOG - $PROJECT_RELEASE_NAME [$PROJECT_RELEASE_VERSION]($GITLAB_URL/$PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME/tags/$PROJECT_RELEASE_VERSION)\n"
     
     if [[ $JOB_RELEASE_STATUS != "success" ]]; then 
         printerror "Le job de release du projet $PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME est en erreur"
