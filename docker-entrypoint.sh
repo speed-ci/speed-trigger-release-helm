@@ -42,16 +42,24 @@ fi
 RELEASE_BRANCH=`curl --silent --noproxy '*' --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_ID/repository/branches/release" | jq .name`
 
 if [[ $RELEASE_BRANCH == "null" ]]; then
-    printinfo "Création de la branch release manquante sur le projet $PROJECT_NAMESPACE/$PROJECT_NAME"
+    printinfo "Création de la branche release manquante sur le projet $PROJECT_NAMESPACE/$PROJECT_NAME"
     curl --silent --noproxy '*' --request POST --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_ID/repository/branches" -d "branch=release" -d "ref=master" | jq .
 
 else
     LAST_NEW_COMMIT=`curl --silent --noproxy '*' --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_ID/repository/compare?from=release&to=master" | jq .commit.id | tr -d '"'`
     if [[ $LAST_NEW_COMMIT != "null" ]]; then
-        printinfo "Mise à jour de la branch release avec les derniers commits de master"
-        MR_IID=`curl --silent --noproxy '*' --request POST --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_ID/merge_requests" -d "source_branch=master" -d "target_branch=release" -d "title=chore(release): Update release branch with $LAST_NEW_COMMIT to prepare release" | jq .iid`
-        curl --silent --noproxy '*' --request PUT --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_ID/merge_requests/$MR_IID/merge" | jq .
+        printinfo "Mise à jour de la branche release avec les derniers commits de master"
+        RELEASE_MR_IID=`curl --silent --noproxy '*' --request POST --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_ID/merge_requests" -d "source_branch=master" -d "target_branch=release" -d "title=chore(release): Update release branch with $LAST_NEW_COMMIT to prepare release" | jq .iid`
+        curl --silent --noproxy '*' --request PUT --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_ID/merge_requests/$RELEASE_MR_IID/merge" | jq .
     fi
+fi
+
+
+RECSMA_BRANCH=`curl --silent --noproxy '*' --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_ID/repository/branches/recsma" | jq .name`
+
+if [[ $RECSMA_BRANCH == "null" ]]; then
+    printinfo "Création de la branche recsma manquante sur le projet $PROJECT_NAMESPACE/$PROJECT_NAME"
+    curl --silent --noproxy '*' --request POST --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_ID/repository/branches" -d "branch=recsma" -d "ref=release" | jq .
 fi
 
 SERVICE_LIST=$DOCKER_DIR/*$SERVICE_EXT
@@ -195,3 +203,6 @@ printmainstep "Création du tag $RELEASE_VERSION sur le projet $PROJECT_NAMESPAC
 echo "CHANGELOG : $CHANGELOG"
 curl --silent --noproxy '*' --request POST --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_ID/repository/tags" -d "tag_name=$RELEASE_VERSION" -d "ref=release" --data-urlencode "release_description=$CHANGELOG" | jq .
 
+printmainstep "Mise à jour de la branche recsma avec les derniers commits de release"
+RECSMA_MR_IID=`curl --silent --noproxy '*' --request POST --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_ID/merge_requests" -d "source_branch=release" -d "target_branch=recsma" -d "title=chore(release): Update recsma branch from release for version $RELEASE_VERSION" | jq .iid`
+curl --silent --noproxy '*' --request PUT --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_ID/merge_requests/$RECSMA_MR_IID/merge" | jq .
