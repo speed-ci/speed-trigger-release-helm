@@ -212,12 +212,21 @@ else
     printinfo "Toutes les versions des microservices sont déjà en place dans le projet $PROJECT_NAMESPACE/$PROJECT_NAME"
 fi
 
+RELEASE_LAST_NEW_COMMIT=`curl --silent --noproxy '*' --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_ID/repository/compare?from=recsma&to=release" | jq .commit.id | tr -d '"'`
+if [[ $RELEASE_LAST_NEW_COMMIT != "null" ]]; then
+    printmainstep "Création du tag $RELEASE_VERSION sur le projet $PROJECT_NAMESPACE/$PROJECT_NAME"
+    echo "CHANGELOG : $CHANGELOG"
+    curl --silent --noproxy '*' --request POST --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_ID/repository/tags" -d "tag_name=$RELEASE_VERSION" -d "ref=release" --data-urlencode "release_description=$CHANGELOG" | jq .
+    
+    printmainstep "Mise à jour de la branche recsma avec les derniers commits de release"
+    RECSMA_MR_IID=`curl --silent --noproxy '*' --request POST --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_ID/merge_requests" -d "source_branch=release" -d "target_branch=recsma" -d "title=chore(release): Update recsma branch from release for version $RELEASE_VERSION" | jq .iid`
+    echo "RECSMA_MR_IID : $RECSMA_MR_IID"
+    curl --silent --noproxy '*' --request PUT --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_ID/merge_requests/$RECSMA_MR_IID/merge" | jq .
+else
+    printinfo "Aucun nouveau commit dans la branche release absent de la branche recsma"
+    printinfo "- création du tag $RELEASE_VERSION dans la branche release inutile"
+    printinfo "- mise à jour de la branche recsma à partir de la branche release inutile"
+fi
 
-printmainstep "Création du tag $RELEASE_VERSION sur le projet $PROJECT_NAMESPACE/$PROJECT_NAME"
-echo "CHANGELOG : $CHANGELOG"
-curl --silent --noproxy '*' --request POST --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_ID/repository/tags" -d "tag_name=$RELEASE_VERSION" -d "ref=release" --data-urlencode "release_description=$CHANGELOG" | jq .
 
-printmainstep "Mise à jour de la branche recsma avec les derniers commits de release"
-RECSMA_MR_IID=`curl --silent --noproxy '*' --request POST --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_ID/merge_requests" -d "source_branch=release" -d "target_branch=recsma" -d "title=chore(release): Update recsma branch from release for version $RELEASE_VERSION" | jq .iid`
-echo "RECSMA_MR_IID : $RECSMA_MR_IID"
-curl --silent --noproxy '*' --request PUT --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_ID/merge_requests/$RECSMA_MR_IID/merge" | jq .
+
