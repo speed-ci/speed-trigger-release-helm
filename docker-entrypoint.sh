@@ -7,6 +7,7 @@ printmainstep "Déclenchement de la release de tous les microservices"
 printstep "Vérification des paramètres d'entrée"
 init_env
 int_gitlab_api_env
+jq --version
 
 GITLAB_CI_USER="gitlab-ci-sln"
 POLLLING_PERIOD=5
@@ -61,6 +62,7 @@ RECSMA_BRANCH=`curl --silent --noproxy '*' --header "PRIVATE-TOKEN: $GITLAB_TOKE
 if [[ $RECSMA_BRANCH == "null" ]]; then
     printinfo "Création de la branche recsma manquante sur le projet $PROJECT_NAMESPACE/$PROJECT_NAME"
     curl --silent --noproxy '*' --request POST --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_ID/repository/branches" -d "branch=recsma" -d "ref=release" | jq .
+    echo "Branch RECSMA crée avec succès"
 fi
 
 SERVICE_LIST=$DOCKER_DIR/*$SERVICE_EXT
