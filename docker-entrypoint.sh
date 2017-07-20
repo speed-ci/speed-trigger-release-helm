@@ -176,9 +176,11 @@ do
     PROJECT_RELEASE_VERSION=`curl --silent --noproxy '*' --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_RELEASE_ID/repository/tags" | jq --arg commit_id "$LAST_COMMIT_ID" '.[] | select(.commit.id == "\($commit_id)")' | jq .name | tr -d '"'`
     PROJECT_RELEASE_VERSIONS[$PROJECT_RELEASE_NAME]=$PROJECT_RELEASE_VERSION
     
-    VERSION_FOUND=`cat $SERVICE | grep $PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME:$PROJECT_RELEASE_VERSION | wc -l`
+    SERVICE_URL_ENCODED=`echo $SERVICE | sed -e "s/\//%2F/g" | sed -e "s/\./%2E/g"`
+    SERVICE_FILE_FROM_RELEASE=`curl --silent --noproxy '*' --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_ID/repository/files/$SERVICE_URL_ENCODED/raw?ref=release"`
+    VERSION_FOUND=`cat $SERVICE_FILE_FROM_RELEASE | grep $PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME:$PROJECT_RELEASE_VERSION | wc -l`
     echo "VERSION_FOUND : $VERSION_FOUND"
-    echo "SERVICE : $SERVICE"
+    echo "SERVICE_FILE_FROM_RELEASE : $SERVICE_FILE_FROM_RELEASE"
     if [[ $VERSION_FOUND == 0 ]]; then
         printinfo "Prise en compte de la version applicative $PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME:$PROJECT_RELEASE_VERSION"
         ACTION_NUM=`echo $PAYLOAD | jq '.actions | length'`
