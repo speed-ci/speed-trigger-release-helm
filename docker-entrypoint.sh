@@ -1,6 +1,19 @@
 #!/bin/bash
 set -e
 
+myCurl() {
+    HTTP_RESPONSE=`curl --silent --noproxy '*' --write-out "HTTPSTATUS:%{http_code}" "$@"`
+    HTTP_BODY=$(echo $HTTP_RESPONSE | sed -e 's/HTTPSTATUS\:.*//g')
+    HTTP_STATUS=$(echo $HTTP_RESPONSE | tr -d '\n' | sed -e 's/.*HTTPSTATUS://')
+    if [ ! $HTTP_STATUS -eq 200  ]; then
+        echo -e "\033[31mError [HTTP status: $HTTP_STATUS] \033[37m" 1>&2
+        echo -e "\033[31mError [HTTP body: $HTTP_BODY] \033[37m" 1>&2
+        echo "{\"error\"}"
+        exit 1
+    fi
+    echo "$HTTP_BODY"
+}
+
 source /init.sh
 
 printmainstep "Déclenchement de la release de tous les microservices"
@@ -31,7 +44,7 @@ if [[ -z $RELEASE_VERSION ]]; then
     exit 1
 fi
 
-PROJECT_ID=`curl --silent --noproxy '*' --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects?search=$PROJECT_NAME" | jq --arg project_namespace "$PROJECT_NAMESPACE" '.[] | select(.namespace.name == "\($project_namespace)")' | jq .id`
+PROJECT_ID=`myCurl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects?search=$PROJECT_NAME" | jq --arg project_namespace "$PROJECT_NAMESPACE" '.[] | select(.namespace.name == "\($project_namespace)")' | jq .id`
 FOUND_TAG=`curl --silent --noproxy '*' --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_ID/repository/tags/$RELEASE_VERSION" | jq .name | tr -d '"'`
 if [[ $FOUND_TAG != "null" ]]; then
     printerror "La version $FOUND_TAG du projet $PROJECT_NAMESPACE/$PROJECT_NAME existe déjà" 
