@@ -1,20 +1,4 @@
-image: $ARTIFACTORY_DOCKER_REGISTRY/docker:17.03.0-ce
-
-variables:
-  IMG: $ARTIFACTORY_DOCKER_REGISTRY/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME
-
-stages:
-  - build
-
-build:
-  stage: build
-  script:
-    - docker login -u $ARTIFACTORY_CI_USER -p $ARTIFACTORY_CI_PASSWORD $ARTIFACTORY_DOCKER_REGISTRY
-    - OLD_IMG=$(docker images -q $IMG)
-    - docker build --build-arg http_proxy=$PROXY --build-arg no_proxy=$NO_PROXY -t $IMG .
-    - docker push $IMG
-    - if [[ "$OLD_IMG" != "" ]];then docker rmi -f $OLD_IMG || true ;fi
-  only:
-    - master    
+dockerize:
+  script: dockerize
   tags:
-    - sln
+  - sln
