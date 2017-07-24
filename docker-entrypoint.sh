@@ -74,8 +74,11 @@ do
     fi
 
     printmainstep "Traitement du projet $PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME"
+    echo "PROJECT_RELEASE_NAME: $PROJECT_RELEASE_NAME"
+    echo "PROJECT_RELEASE_IDS[PROJECT_RELEASE_NAME] : ${PROJECT_RELEASE_IDS[$PROJECT_RELEASE_NAME]}"
     
     if  [[ -z ${PROJECT_RELEASE_IDS[$PROJECT_RELEASE_NAME]} ]]; then
+    
     
         PROJECT_RELEASE_ID=`myCurl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects?search=$PROJECT_RELEASE_NAME" | jq --arg project_namespace "$PROJECT_NAMESPACE" '.[] | select(.namespace.name == "\($project_namespace)") | .id'`
         PROJECT_RELEASE_IDS[$PROJECT_RELEASE_NAME]=$PROJECT_RELEASE_ID
