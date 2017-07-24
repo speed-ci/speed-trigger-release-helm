@@ -31,7 +31,7 @@ if [[ -z $RELEASE_VERSION ]]; then
     exit 1
 fi
 
-PROJECT_ID=`myCurl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects?search=$PROJECT_NAME" | jq --arg project_namespace "$PROJECT_NAMESPACE" '.[] | select(.namespace.name == "\($project_namespace)")' | jq .id`
+PROJECT_ID=`myCurl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects?search=$PROJECT_NAME" | jq --arg project_namespace "$PROJECT_NAMESPACE" '.[] | select(.namespace.name == "\($project_namespace)") | .id'`
 FOUND_TAG=`myCurl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_ID/repository/tags/$RELEASE_VERSION" | jq -r .name`
 if [[ $FOUND_TAG != "null" ]]; then
     printerror "La version $FOUND_TAG du projet $PROJECT_NAMESPACE/$PROJECT_NAME existe déjà" 
@@ -74,7 +74,7 @@ do
     
     printmainstep "Déclenchement de la release du microservice $PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME"
     
-    PROJECT_RELEASE_ID=`myCurl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects?search=$PROJECT_RELEASE_NAME" | jq --arg project_namespace "$PROJECT_NAMESPACE" '.[] | select(.namespace.name == "\($project_namespace)")' | jq .id`
+    PROJECT_RELEASE_ID=`myCurl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects?search=$PROJECT_RELEASE_NAME" | jq --arg project_namespace "$PROJECT_NAMESPACE" '.[] | select(.namespace.name == "\($project_namespace)") | .id'`
     PROJECT_RELEASE_IDS[$PROJECT_RELEASE_NAME]=$PROJECT_RELEASE_ID
     
     if [[ $PROJECT_RELEASE_ID != "null" ]]; then
@@ -90,7 +90,7 @@ do
         LAST_COMMIT_ID=`myCurl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_RELEASE_ID/repository/commits?per_page=1&page=1" | jq -r .[0].id`
         LAST_COMMIT_IDS[$PROJECT_RELEASE_NAME]=$LAST_COMMIT_ID
         LAST_PIPELINE_ID=`myCurl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_RELEASE_ID/pipelines?per_page=1&page=1" | jq -r .[0].id`
-        JOB_RELEASE_ID=`myCurl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_RELEASE_ID/jobs" | jq --arg commit_id "$LAST_COMMIT_ID" --arg pipeline_id "$LAST_PIPELINE_ID" '.[] | select(.commit.id == "\($commit_id)" and (.pipeline.id | tostring  == "\($pipeline_id)")  and .name == "release" and .ref == "master")' | jq .id | head -1`
+        JOB_RELEASE_ID=`myCurl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_RELEASE_ID/jobs" | jq --arg commit_id "$LAST_COMMIT_ID" --arg pipeline_id "$LAST_PIPELINE_ID" '.[] | select(.commit.id == "\($commit_id)" and (.pipeline.id | tostring  == "\($pipeline_id)")  and .name == "release" and .ref == "master") | .id' | head -1`
         JOB_RELEASE_IDS[$PROJECT_RELEASE_NAME]=$JOB_RELEASE_ID
     
         if [[ $JOB_RELEASE_ID != "" ]]; then
@@ -172,7 +172,7 @@ do
     printinfo "Lien d'accès aux logs distants : $GITLAB_URL/$PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME/builds/$JOB_RELEASE_ID"
 
     LAST_COMMIT_ID=${LAST_COMMIT_IDS[$PROJECT_RELEASE_NAME]}
-    PROJECT_RELEASE_VERSION=`myCurl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_RELEASE_ID/repository/tags" | jq --arg commit_id "$LAST_COMMIT_ID" '.[] | select(.commit.id == "\($commit_id)")' | jq -r .name`
+    PROJECT_RELEASE_VERSION=`myCurl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_RELEASE_ID/repository/tags" | jq -r --arg commit_id "$LAST_COMMIT_ID" '.[] | select(.commit.id == "\($commit_id)") | .name'`
     PROJECT_RELEASE_VERSIONS[$PROJECT_RELEASE_NAME]=$PROJECT_RELEASE_VERSION
     
     SERVICE_URL_ENCODED=`echo $SERVICE | sed -e "s/\//%2F/g" | sed -e "s/\./%2E/g"`
