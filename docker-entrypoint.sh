@@ -46,10 +46,10 @@ if [[ $RELEASE_BRANCH == "null" ]]; then
     myCurl --request POST --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_ID/repository/branches" -d "branch=release" -d "ref=master" | jq .
 
 else
-    LAST_NEW_COMMIT=`curl --silent --noproxy '*' --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_ID/repository/compare?from=release&to=master" | jq -r .commit.id`
+    LAST_NEW_COMMIT=`myCurl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_ID/repository/compare?from=release&to=master" | jq -r .commit.id`
     if [[ $LAST_NEW_COMMIT != "null" ]]; then
         printinfo "Mise à jour de la branche release avec les derniers commits de master"
-        RELEASE_MR_IID=`curl --silent --noproxy '*' --request POST --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_ID/merge_requests" -d "source_branch=master" -d "target_branch=release" -d "title=chore(release): Update release branch with $LAST_NEW_COMMIT to prepare release" | jq .iid`
+        RELEASE_MR_IID=`myCurl --request POST --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_ID/merge_requests" -d "source_branch=master" -d "target_branch=release" -d "title=chore(release): Update release branch with $LAST_NEW_COMMIT to prepare release" | jq .iid`
         echo "RELEASE_MR_IID : $RELEASE_MR_IID"
         myCurl --request PUT --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_ID/merge_requests/$RELEASE_MR_IID/merge" | jq .
     fi
@@ -67,23 +67,17 @@ SERVICE_LIST=$DOCKER_DIR/*$SERVICE_EXT
 for SERVICE in $SERVICE_LIST
 do
     PROJECT_RELEASE_NAME=$(basename "$SERVICE" $SERVICE_EXT)
-    echo "PROJECT_RELEASE_NAME: -$PROJECT_RELEASE_NAME-"
     PROJECT_RELEASE_NAME=${PROJECT_RELEASE_NAME%--*}
-    echo "PROJECT_RELEASE_NAME: -$PROJECT_RELEASE_NAME-"
     if [[ $PROJECT_RELEASE_NAME == "*" ]]; then
         printerror "Aucun service docker trouvé respectant le format $SERVICE_LIST"
         exit 1
     fi
 
     printmainstep "Traitement du projet $PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME"
-    echo "PROJECT_RELEASE_NAME: -$PROJECT_RELEASE_NAME-"
-    echo "PROJECT_RELEASE_IDS[PROJECT_RELEASE_NAME] : ${PROJECT_RELEASE_IDS[$PROJECT_RELEASE_NAME]}"
-    
+
     if  [[ -z ${PROJECT_RELEASE_IDS[$PROJECT_RELEASE_NAME]} ]]; then
     
-        echo "Step inside traitment"
-        PROJECT_RELEASE_ID=`curl --silent --noproxy '*' --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects?search=$PROJECT_RELEASE_NAME" | jq --arg project_namespace "$PROJECT_NAMESPACE" '.[] | select(.namespace.name == "\($project_namespace)") | .id'`
-        echo "PROJECT_RELEASE_ID: $PROJECT_RELEASE_ID"
+        PROJECT_RELEASE_ID=`myCurl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects?search=$PROJECT_RELEASE_NAME" | jq --arg project_namespace "$PROJECT_NAMESPACE" '.[] | select(.namespace.name == "\($project_namespace)") | .id'`
         PROJECT_RELEASE_IDS[$PROJECT_RELEASE_NAME]=$PROJECT_RELEASE_ID
         
         if [[ $PROJECT_RELEASE_ID != "null" ]]; then
@@ -175,6 +169,7 @@ PAYLOAD=`jq --arg commit_message "Update services versions for version $RELEASE_
 for SERVICE in $SERVICE_LIST
 do
     PROJECT_RELEASE_NAME=$(basename "$SERVICE" $SERVICE_EXT)
+    PROJECT_RELEASE_NAME=${PROJECT_RELEASE_NAME%--*}
     PROJECT_RELEASE_ID=${PROJECT_RELEASE_IDS[$PROJECT_RELEASE_NAME]}
     JOB_RELEASE_ID=${JOB_RELEASE_IDS[$PROJECT_RELEASE_NAME]}
     JOB_RELEASE_STATUS=`myCurl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_RELEASE_ID/jobs/$JOB_RELEASE_ID" | jq -r .status`
