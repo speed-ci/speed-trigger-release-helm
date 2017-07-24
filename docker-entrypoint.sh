@@ -192,7 +192,7 @@ do
         PAYLOAD=`jq --arg action_num "$ACTION_NUM" --arg content "$CONTENT" '. | .actions[$action_num|tonumber].content=$content' <<< $PAYLOAD`
         PAYLOAD=`jq --arg action_num "$ACTION_NUM" --arg file_path "$SERVICE" '. | .actions[$action_num|tonumber].file_path=$file_path' <<< $PAYLOAD`
         
-        CHANGELOG=$(printf "$CHANGELOG\n - $PROJECT_RELEASE_NAME [$PROJECT_RELEASE_VERSION]($GITLAB_URL/$PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME/tags/$PROJECT_RELEASE_VERSION)")
+        CHANGELOG=$(printf "$CHANGELOG\n - Service $SERVICE : Projet Gitlab associé $PROJECT_RELEASE_NAME [$PROJECT_RELEASE_VERSION]($GITLAB_URL/$PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME/tags/$PROJECT_RELEASE_VERSION)")
     else
         printinfo "La version applicative $PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME:$PROJECT_RELEASE_VERSION est déjà en place sur le projet $PROJECT_NAMESPACE/$PROJECT_NAME"
     fi
@@ -201,6 +201,7 @@ do
         printerror "Le job de release du projet $PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME est en erreur"
         HAS_FAILED_JOB=true;
     fi
+    echo ""
 done    
 
 if [[ $HAS_FAILED_JOB == "true" ]]; then
