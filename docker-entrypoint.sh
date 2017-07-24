@@ -67,63 +67,69 @@ SERVICE_LIST=$DOCKER_DIR/*$SERVICE_EXT
 for SERVICE in $SERVICE_LIST
 do
     PROJECT_RELEASE_NAME=$(basename "$SERVICE" $SERVICE_EXT)
+    PROJECT_RELEASE_NAME=${PROJECT_RELEASE_NAME%--*}
     if [[ $PROJECT_RELEASE_NAME == "*" ]]; then
         printerror "Aucun service docker trouvé respectant le format $SERVICE_LIST"
         exit 1
     fi
-    
-    printmainstep "Déclenchement de la release du microservice $PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME"
-    
-    PROJECT_RELEASE_ID=`myCurl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects?search=$PROJECT_RELEASE_NAME" | jq --arg project_namespace "$PROJECT_NAMESPACE" '.[] | select(.namespace.name == "\($project_namespace)") | .id'`
-    PROJECT_RELEASE_IDS[$PROJECT_RELEASE_NAME]=$PROJECT_RELEASE_ID
-    
-    if [[ $PROJECT_RELEASE_ID != "null" ]]; then
-    
-        printstep "Préparation du projet $PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME"
-        GITLAB_CI_USER_MEMBERSHIP=`myCurl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_RELEASE_ID/members?query=$GITLAB_CI_USER" | jq .[0]`
-        if [[ $GITLAB_CI_USER_MEMBERSHIP == "null" ]]; then 
-            printinfo "Ajout du user $GITLAB_CI_USER manquant au projet $PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME"
-            myCurl --request POST --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_RELEASE_ID/members" -d "user_id=$GITLAB_CI_USER_ID" -d "access_level=40"
-        fi
-    
-        printstep "Préparation du lancement du job release sur le projet $PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME"
-        LAST_COMMIT_ID=`myCurl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_RELEASE_ID/repository/commits?per_page=1&page=1" | jq -r .[0].id`
-        LAST_COMMIT_IDS[$PROJECT_RELEASE_NAME]=$LAST_COMMIT_ID
-        LAST_PIPELINE_ID=`myCurl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_RELEASE_ID/pipelines?per_page=1&page=1" | jq -r .[0].id`
-        JOB_RELEASE_ID=`myCurl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_RELEASE_ID/jobs" | jq --arg commit_id "$LAST_COMMIT_ID" --arg pipeline_id "$LAST_PIPELINE_ID" '.[] | select(.commit.id == "\($commit_id)" and (.pipeline.id | tostring  == "\($pipeline_id)")  and .name == "release" and .ref == "master") | .id' | head -1`
-        JOB_RELEASE_IDS[$PROJECT_RELEASE_NAME]=$JOB_RELEASE_ID
-    
-        if [[ $JOB_RELEASE_ID != "" ]]; then
-            printstep "Déclenchement de la release sur le projet $PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME pour le dernier commit $LAST_COMMIT_ID"
-            JOB_RELEASE_STATUS=`myCurl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_RELEASE_ID/jobs/$JOB_RELEASE_ID" | jq -r .status`
-            printinfo "LAST_PIPELINE_ID   : $LAST_PIPELINE_ID"
-            printinfo "JOB_RELEASE_ID     : $JOB_RELEASE_ID"
-            printinfo "JOB_RELEASE_STATUS : $JOB_RELEASE_STATUS"
 
-            if [[ $JOB_RELEASE_STATUS == "skipped" ]]; then
-                printerror "Les étapes préalables à la release doivent être effectuées avec succès, release interrompue"
-                exit 1
-            elif [[ $JOB_RELEASE_STATUS == "success" ]]; then
-                echo ""
-                printinfo "Le job release est déjà un succès, relancement inutile"
-            elif [[ $JOB_RELEASE_STATUS == "manual" ]]; then
-                JOB_RELEASE_ID=`myCurl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" -XPOST "$GITLAB_API_URL/projects/$PROJECT_RELEASE_ID/jobs/$JOB_RELEASE_ID/play" | jq .id`
-                JOB_RELEASE_IDS[$PROJECT_RELEASE_NAME]=$JOB_RELEASE_ID
-                printinfo "JOB_RELEASE_ID     : $JOB_RELEASE_ID"
-                printinfo "JOB_RELEASE_ID MAP : ${JOB_RELEASE_IDS[$PROJECT_RELEASE_NAME]}"
-            else
-                JOB_RELEASE_ID=`myCurl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" -XPOST "$GITLAB_API_URL/projects/$PROJECT_RELEASE_ID/jobs/$JOB_RELEASE_ID/retry" | jq .id`
-                JOB_RELEASE_IDS[$PROJECT_RELEASE_NAME]=$JOB_RELEASE_ID
-                printinfo "JOB_RELEASE_ID MAP : ${JOB_RELEASE_IDS[$PROJECT_RELEASE_NAME]}"
+    printmainstep "Traitement du projet $PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME"
+    
+    if  [[ -z ${PROJECT_RELEASE_IDS[$PROJECT_RELEASE_NAME]} ]]; then
+    
+        PROJECT_RELEASE_ID=`myCurl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects?search=$PROJECT_RELEASE_NAME" | jq --arg project_namespace "$PROJECT_NAMESPACE" '.[] | select(.namespace.name == "\($project_namespace)") | .id'`
+        PROJECT_RELEASE_IDS[$PROJECT_RELEASE_NAME]=$PROJECT_RELEASE_ID
+        
+        if [[ $PROJECT_RELEASE_ID != "null" ]]; then
+        
+            printstep "Préparation du projet $PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME"
+            GITLAB_CI_USER_MEMBERSHIP=`myCurl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_RELEASE_ID/members?query=$GITLAB_CI_USER" | jq .[0]`
+            if [[ $GITLAB_CI_USER_MEMBERSHIP == "null" ]]; then 
+                printinfo "Ajout du user $GITLAB_CI_USER manquant au projet $PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME"
+                myCurl --request POST --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_RELEASE_ID/members" -d "user_id=$GITLAB_CI_USER_ID" -d "access_level=40"
             fi
+        
+            printstep "Préparation du lancement du job release sur le projet $PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME"
+            LAST_COMMIT_ID=`myCurl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_RELEASE_ID/repository/commits?per_page=1&page=1" | jq -r .[0].id`
+            LAST_COMMIT_IDS[$PROJECT_RELEASE_NAME]=$LAST_COMMIT_ID
+            LAST_PIPELINE_ID=`myCurl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_RELEASE_ID/pipelines?per_page=1&page=1" | jq -r .[0].id`
+            JOB_RELEASE_ID=`myCurl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_RELEASE_ID/jobs" | jq --arg commit_id "$LAST_COMMIT_ID" --arg pipeline_id "$LAST_PIPELINE_ID" '.[] | select(.commit.id == "\($commit_id)" and (.pipeline.id | tostring  == "\($pipeline_id)")  and .name == "release" and .ref == "master") | .id' | head -1`
+            JOB_RELEASE_IDS[$PROJECT_RELEASE_NAME]=$JOB_RELEASE_ID
+        
+            if [[ $JOB_RELEASE_ID != "" ]]; then
+                printstep "Déclenchement de la release sur le projet $PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME pour le dernier commit $LAST_COMMIT_ID"
+                JOB_RELEASE_STATUS=`myCurl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_RELEASE_ID/jobs/$JOB_RELEASE_ID" | jq -r .status`
+                printinfo "LAST_PIPELINE_ID   : $LAST_PIPELINE_ID"
+                printinfo "JOB_RELEASE_ID     : $JOB_RELEASE_ID"
+                printinfo "JOB_RELEASE_STATUS : $JOB_RELEASE_STATUS"
+    
+                if [[ $JOB_RELEASE_STATUS == "skipped" ]]; then
+                    printerror "Les étapes préalables à la release doivent être effectuées avec succès, release interrompue"
+                    exit 1
+                elif [[ $JOB_RELEASE_STATUS == "success" ]]; then
+                    echo ""
+                    printinfo "Le job release est déjà un succès, relancement inutile"
+                elif [[ $JOB_RELEASE_STATUS == "manual" ]]; then
+                    JOB_RELEASE_ID=`myCurl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" -XPOST "$GITLAB_API_URL/projects/$PROJECT_RELEASE_ID/jobs/$JOB_RELEASE_ID/play" | jq .id`
+                    JOB_RELEASE_IDS[$PROJECT_RELEASE_NAME]=$JOB_RELEASE_ID
+                    printinfo "JOB_RELEASE_ID     : $JOB_RELEASE_ID"
+                    printinfo "JOB_RELEASE_ID MAP : ${JOB_RELEASE_IDS[$PROJECT_RELEASE_NAME]}"
+                else
+                    JOB_RELEASE_ID=`myCurl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" -XPOST "$GITLAB_API_URL/projects/$PROJECT_RELEASE_ID/jobs/$JOB_RELEASE_ID/retry" | jq .id`
+                    JOB_RELEASE_IDS[$PROJECT_RELEASE_NAME]=$JOB_RELEASE_ID
+                    printinfo "JOB_RELEASE_ID MAP : ${JOB_RELEASE_IDS[$PROJECT_RELEASE_NAME]}"
+                fi
+            else
+                printerror "Pas de déclenchement de release possible, le projet $PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME ne dispose pas de job release disponible pour le commit $LAST_COMMIT_ID" 
+                exit 1
+            fi
+        
         else
-            printerror "Pas de déclenchement de release possible, le projet $PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME ne dispose pas de job release disponible pour le commit $LAST_COMMIT_ID" 
+            printerror "Pas de déclenchement de release possible, le projet $PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME n'existe pas"
             exit 1
         fi
-    
     else
-        printerror "Pas de déclenchement de release possible, le projet $PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME n'existe pas"
-        exit 1
+        printinfo "Projet $PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME déjà traité précédemment"
     fi
 done
 
@@ -132,9 +138,8 @@ sleep $POLLLING_PERIOD
 while :
 do
     HAS_RUNNING=false
-    for SERVICE in $SERVICE_LIST
+    for PROJECT_RELEASE_NAME in "${!PROJECT_RELEASE_IDS[@]}"
     do
-        PROJECT_RELEASE_NAME=$(basename "$SERVICE" $SERVICE_EXT)
         PROJECT_RELEASE_ID=${PROJECT_RELEASE_IDS[$PROJECT_RELEASE_NAME]}
         JOB_RELEASE_ID=${JOB_RELEASE_IDS[$PROJECT_RELEASE_NAME]}
         JOB_RELEASE_STATUS=`myCurl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_RELEASE_ID/jobs/$JOB_RELEASE_ID" | jq -r .status`
