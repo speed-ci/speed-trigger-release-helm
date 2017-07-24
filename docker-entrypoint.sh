@@ -77,10 +77,10 @@ do
     echo "PROJECT_RELEASE_NAME: $PROJECT_RELEASE_NAME"
     echo "PROJECT_RELEASE_IDS[PROJECT_RELEASE_NAME] : ${PROJECT_RELEASE_IDS[$PROJECT_RELEASE_NAME]}"
     
-    if  [[ ${PROJECT_RELEASE_IDS[$PROJECT_RELEASE_NAME]} == "" ]]; then
+    if  [[ -z ${PROJECT_RELEASE_IDS[$PROJECT_RELEASE_NAME]} ]]; then
     
         echo "Step inside traitment"
-        PROJECT_RELEASE_ID=`myCurl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects?search=$PROJECT_RELEASE_NAME" | jq --arg project_namespace "$PROJECT_NAMESPACE" '.[] | select(.namespace.name == "\($project_namespace)") | .id'`
+        PROJECT_RELEASE_ID=`curl --silent --noproxy '*' --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects?search=$PROJECT_RELEASE_NAME" | jq --arg project_namespace "$PROJECT_NAMESPACE" '.[] | select(.namespace.name == "\($project_namespace)") | .id'`
         echo "PROJECT_RELEASE_ID: $PROJECT_RELEASE_ID"
         PROJECT_RELEASE_IDS[$PROJECT_RELEASE_NAME]=$PROJECT_RELEASE_ID
         
