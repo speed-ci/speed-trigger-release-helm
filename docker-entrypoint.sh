@@ -8,7 +8,7 @@ myCurl() {
     if [[ ! $HTTP_STATUS -eq 200 ]] && [[ ! $HTTP_STATUS -eq 404 ]] && [[ ! $HTTP_STATUS -eq 201 ]]; then
         echo -e "\033[31mError [HTTP status: $HTTP_STATUS] \033[37m" 1>&2
         echo -e "\033[31mError [HTTP body: $HTTP_BODY] \033[37m" 1>&2
-        echo "{\"error\"}"
+        jq -n 'error("Previsous curl command return with error")'
         exit 1
     fi
     echo "$HTTP_BODY"
