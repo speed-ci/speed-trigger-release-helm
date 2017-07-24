@@ -32,7 +32,7 @@ if [[ -z $RELEASE_VERSION ]]; then
 fi
 
 PROJECT_ID=`myCurl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects?search=$PROJECT_NAME" | jq --arg project_namespace "$PROJECT_NAMESPACE" '.[] | select(.namespace.name == "\($project_namespace)")' | jq .id`
-FOUND_TAG=`myCurl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_ID/repository/tags/$RELEASE_VERSION" | jq .name | tr -d '"'`
+FOUND_TAG=`myCurl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_ID/repository/tags/$RELEASE_VERSION" | jq -r .name`
 if [[ $FOUND_TAG != "null" ]]; then
     printerror "La version $FOUND_TAG du projet $PROJECT_NAMESPACE/$PROJECT_NAME existe déjà" 
     printerror "Un utilisateur master du projet doit mettre à jour à la version suivante la variable secrète RELEASE_VERSION dans le menu Settings / CI/CD Pipelines" 
@@ -46,7 +46,7 @@ if [[ $RELEASE_BRANCH == "null" ]]; then
     myCurl --request POST --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_ID/repository/branches" -d "branch=release" -d "ref=master" | jq .
 
 else
-    LAST_NEW_COMMIT=`curl --silent --noproxy '*' --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_ID/repository/compare?from=release&to=master" | jq .commit.id | tr -d '"'`
+    LAST_NEW_COMMIT=`curl --silent --noproxy '*' --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_ID/repository/compare?from=release&to=master" | jq -r .commit.id`
     if [[ $LAST_NEW_COMMIT != "null" ]]; then
         printinfo "Mise à jour de la branche release avec les derniers commits de master"
         RELEASE_MR_IID=`curl --silent --noproxy '*' --request POST --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_ID/merge_requests" -d "source_branch=master" -d "target_branch=release" -d "title=chore(release): Update release branch with $LAST_NEW_COMMIT to prepare release" | jq .iid`
@@ -87,15 +87,15 @@ do
         fi
     
         printstep "Préparation du lancement du job release sur le projet $PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME"
-        LAST_COMMIT_ID=`myCurl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_RELEASE_ID/repository/commits?per_page=1&page=1" | jq .[0].id | tr -d '"'`
+        LAST_COMMIT_ID=`myCurl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_RELEASE_ID/repository/commits?per_page=1&page=1" | jq -r .[0].id`
         LAST_COMMIT_IDS[$PROJECT_RELEASE_NAME]=$LAST_COMMIT_ID
-        LAST_PIPELINE_ID=`myCurl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_RELEASE_ID/pipelines?per_page=1&page=1" | jq .[0].id  | tr -d '"'`
+        LAST_PIPELINE_ID=`myCurl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_RELEASE_ID/pipelines?per_page=1&page=1" | jq -r .[0].id`
         JOB_RELEASE_ID=`myCurl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_RELEASE_ID/jobs" | jq --arg commit_id "$LAST_COMMIT_ID" --arg pipeline_id "$LAST_PIPELINE_ID" '.[] | select(.commit.id == "\($commit_id)" and (.pipeline.id | tostring  == "\($pipeline_id)")  and .name == "release" and .ref == "master")' | jq .id | head -1`
         JOB_RELEASE_IDS[$PROJECT_RELEASE_NAME]=$JOB_RELEASE_ID
     
         if [[ $JOB_RELEASE_ID != "" ]]; then
             printstep "Déclenchement de la release sur le projet $PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME pour le dernier commit $LAST_COMMIT_ID"
-            JOB_RELEASE_STATUS=`myCurl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_RELEASE_ID/jobs/$JOB_RELEASE_ID" | jq .status | tr -d '"'`
+            JOB_RELEASE_STATUS=`myCurl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_RELEASE_ID/jobs/$JOB_RELEASE_ID" | jq -r .status`
             printinfo "LAST_PIPELINE_ID   : $LAST_PIPELINE_ID"
             printinfo "JOB_RELEASE_ID     : $JOB_RELEASE_ID"
             printinfo "JOB_RELEASE_STATUS : $JOB_RELEASE_STATUS"
@@ -137,7 +137,7 @@ do
         PROJECT_RELEASE_NAME=$(basename "$SERVICE" $SERVICE_EXT)
         PROJECT_RELEASE_ID=${PROJECT_RELEASE_IDS[$PROJECT_RELEASE_NAME]}
         JOB_RELEASE_ID=${JOB_RELEASE_IDS[$PROJECT_RELEASE_NAME]}
-        JOB_RELEASE_STATUS=`myCurl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_RELEASE_ID/jobs/$JOB_RELEASE_ID" | jq .status | tr -d '"'`
+        JOB_RELEASE_STATUS=`myCurl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_RELEASE_ID/jobs/$JOB_RELEASE_ID" | jq -r .status`
         JOB_RELEASE_STATUSES[$PROJECT_RELEASE_NAME]=$JOB_RELEASE_STATUS
         if [[ $JOB_RELEASE_STATUS == "pending" ]] || [[ $JOB_RELEASE_STATUS == "running" ]]; then HAS_RUNNING=true; fi
         printinfo "JOB_RELEASE_STATUS : $JOB_RELEASE_STATUS"
@@ -166,13 +166,13 @@ do
     PROJECT_RELEASE_NAME=$(basename "$SERVICE" $SERVICE_EXT)
     PROJECT_RELEASE_ID=${PROJECT_RELEASE_IDS[$PROJECT_RELEASE_NAME]}
     JOB_RELEASE_ID=${JOB_RELEASE_IDS[$PROJECT_RELEASE_NAME]}
-    JOB_RELEASE_STATUS=`myCurl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_RELEASE_ID/jobs/$JOB_RELEASE_ID" | jq .status | tr -d '"'`
+    JOB_RELEASE_STATUS=`myCurl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_RELEASE_ID/jobs/$JOB_RELEASE_ID" | jq -r .status`
 
     printinfo "Status final du job release du projet $PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME : $JOB_RELEASE_STATUS"
     printinfo "Lien d'accès aux logs distants : $GITLAB_URL/$PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME/builds/$JOB_RELEASE_ID"
 
     LAST_COMMIT_ID=${LAST_COMMIT_IDS[$PROJECT_RELEASE_NAME]}
-    PROJECT_RELEASE_VERSION=`myCurl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_RELEASE_ID/repository/tags" | jq --arg commit_id "$LAST_COMMIT_ID" '.[] | select(.commit.id == "\($commit_id)")' | jq .name | tr -d '"'`
+    PROJECT_RELEASE_VERSION=`myCurl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_RELEASE_ID/repository/tags" | jq --arg commit_id "$LAST_COMMIT_ID" '.[] | select(.commit.id == "\($commit_id)")' | jq -r .name`
     PROJECT_RELEASE_VERSIONS[$PROJECT_RELEASE_NAME]=$PROJECT_RELEASE_VERSION
     
     SERVICE_URL_ENCODED=`echo $SERVICE | sed -e "s/\//%2F/g" | sed -e "s/\./%2E/g"`
@@ -211,7 +211,7 @@ else
     printinfo "Toutes les versions des microservices sont déjà en place dans le projet $PROJECT_NAMESPACE/$PROJECT_NAME"
 fi
 
-RELEASE_LAST_NEW_COMMIT=`myCurl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_ID/repository/compare?from=recsma&to=release" | jq .commit.id | tr -d '"'`
+RELEASE_LAST_NEW_COMMIT=`myCurl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_ID/repository/compare?from=recsma&to=release" | jq -r .commit.id`
 if [[ $RELEASE_LAST_NEW_COMMIT != "null" ]]; then
     printmainstep "Création du tag $RELEASE_VERSION sur le projet $PROJECT_NAMESPACE/$PROJECT_NAME"
     echo "CHANGELOG : $CHANGELOG"
