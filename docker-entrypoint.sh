@@ -112,12 +112,9 @@ do
                 elif [[ $JOB_RELEASE_STATUS == "manual" ]]; then
                     JOB_RELEASE_ID=`myCurl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" -XPOST "$GITLAB_API_URL/projects/$PROJECT_RELEASE_ID/jobs/$JOB_RELEASE_ID/play" | jq .id`
                     JOB_RELEASE_IDS[$PROJECT_RELEASE_NAME]=$JOB_RELEASE_ID
-                    printinfo "JOB_RELEASE_ID     : $JOB_RELEASE_ID"
-                    printinfo "JOB_RELEASE_ID MAP : ${JOB_RELEASE_IDS[$PROJECT_RELEASE_NAME]}"
                 else
                     JOB_RELEASE_ID=`myCurl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" -XPOST "$GITLAB_API_URL/projects/$PROJECT_RELEASE_ID/jobs/$JOB_RELEASE_ID/retry" | jq .id`
                     JOB_RELEASE_IDS[$PROJECT_RELEASE_NAME]=$JOB_RELEASE_ID
-                    printinfo "JOB_RELEASE_ID MAP : ${JOB_RELEASE_IDS[$PROJECT_RELEASE_NAME]}"
                 fi
             else
                 printerror "Pas de déclenchement de release possible, le projet $PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME ne dispose pas de job release disponible pour le commit $LAST_COMMIT_ID" 
@@ -133,6 +130,7 @@ do
     fi
 done
 
+printmainstep "Attente de la fin de tous les jobs de release"
 sleep $POLLLING_PERIOD
 
 while :
@@ -149,7 +147,6 @@ do
     done
     
     if [[ $HAS_RUNNING == "false" ]]; then break; fi
-    printinfo "HAS_RUNNING : $HAS_RUNNING : [[ $HAS_RUNNING == "false" ]]"
     sleep $POLLLING_PERIOD
 done
 
