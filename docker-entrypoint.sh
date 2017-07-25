@@ -27,7 +27,7 @@ declare -A JOB_RELEASE_STATUSES
 printstep "Préparation du projet $PROJECT_NAMESPACE/$PROJECT_NAME"
 
 if [[ -z $RELEASE_VERSION ]]; then
-    printerror "La variable secrète RELEASE_VERSION doit être renseignée par un utilisateur master du projet $PROJECT_NAMESPACE/$PROJECT_NAME dans le menu Settings / CI/CD Pipelines" 
+    printerror "La variable secrète RELEASE_VERSION doit être renseignée par un utilisateur master du projet $PROJECT_NAMESPACE/$PROJECT_NAME dans le menu Settings / Pipelines" 
     exit 1
 fi
 
@@ -35,7 +35,7 @@ PROJECT_ID=`myCurl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/proj
 FOUND_TAG=`myCurl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_ID/repository/tags/$RELEASE_VERSION" | jq -r .name`
 if [[ $FOUND_TAG != "null" ]]; then
     printerror "La version $FOUND_TAG du projet $PROJECT_NAMESPACE/$PROJECT_NAME existe déjà" 
-    printerror "Un utilisateur master du projet doit mettre à jour à la version suivante la variable secrète RELEASE_VERSION dans le menu Settings / CI/CD Pipelines" 
+    printerror "Un utilisateur master du projet doit mettre à jour à la version suivante la variable secrète RELEASE_VERSION dans le menu Settings / Pipelines" 
     exit 1
 fi
 
