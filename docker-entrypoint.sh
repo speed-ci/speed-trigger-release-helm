@@ -192,7 +192,7 @@ do
         PAYLOAD=`jq --arg action_num "$ACTION_NUM" --arg file_path "$SERVICE" '. | .actions[$action_num|tonumber].file_path=$file_path' <<< $PAYLOAD`
         
         if  [[ -z $CHANGELOG ]]; then CHANGELOG=$(printf "### Versions des microservices\n"); fi
-        CHANGELOG=$(printf "$CHANGELOG\n - Service *$SERVICE* : Projet Gitlab associé *$PROJECT_RELEASE_NAME [$PROJECT_RELEASE_VERSION]($GITLAB_URL/$PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME/tags/$PROJECT_RELEASE_VERSION)*")
+        CHANGELOG=$(printf "$CHANGELOG\n - Service **$SERVICE** : Projet Gitlab associé **$PROJECT_RELEASE_NAME [$PROJECT_RELEASE_VERSION]($GITLAB_URL/$PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME/tags/$PROJECT_RELEASE_VERSION)**")
     else
         printinfo "La version applicative $PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME:$PROJECT_RELEASE_VERSION est déjà en place sur le projet $PROJECT_NAMESPACE/$PROJECT_NAME"
     fi
