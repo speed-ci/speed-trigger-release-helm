@@ -11,7 +11,7 @@ int_gitlab_api_env
 GITLAB_CI_USER="gitlab-ci-sln"
 POLLLING_PERIOD=5
 DOCKER_DIR=docker
-SERVICE_EXT=.serv
+SERVICE_EXT=.service
 
 if [ ! -d $DOCKER_DIR ]; then
     printerror "Impossible de trouver le dossier $DOCKER_DIR contenant les services docker dans le projet"
@@ -178,6 +178,7 @@ do
     PROJECT_RELEASE_VERSIONS[$PROJECT_RELEASE_NAME]=$PROJECT_RELEASE_VERSION
     
     IMAGE=$ARTIFACTORY_DOCKER_REGISTRY/$PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME:$PROJECT_RELEASE_VERSION
+    printinfo "Ajouter la version du macroservice au tag de l'image du microservice : $IMAGE-part-of-$RELEASE_VERSION"
     ARTIFACTORY_IMAGE_ID=`myCurl -u $ARTIFACTORY_USER:$ARTIFACTORY_PASSWORD "$ARTIFACTORY_URL/artifactory/docker/$PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME/$PROJECT_RELEASE_VERSION-part-of-$RELEASE_VERSION/manifest.json" | jq -r .config.digest`
     if [[ $ARTIFACTORY_IMAGE_ID == "null" ]]; then
         docker login -u $ARTIFACTORY_USER -p $ARTIFACTORY_PASSWORD $ARTIFACTORY_DOCKER_REGISTRY
