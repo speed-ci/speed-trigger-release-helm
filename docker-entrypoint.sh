@@ -160,7 +160,7 @@ PAYLOAD=$(cat << 'JSON'
 JSON
 )
 
-PAYLOAD=`jq --arg commit_message "Update services versions for version $RELEASE_VERSION" '. | .commit_message=$commit_message' <<< $PAYLOAD`
+PAYLOAD=`jq --arg commit_message "chore(release): bump services versions to $RELEASE_VERSION" '. | .commit_message=$commit_message' <<< $PAYLOAD`
 
 for SERVICE in $SERVICE_LIST
 do
@@ -223,7 +223,7 @@ printmainstep "Mise à jour des fichiers de services dans la branche release ave
 ACTION_NUM=`echo $PAYLOAD | jq '.actions | length'`
 if [[ $ACTION_NUM != 0 ]]; then
     echo "PAYLOAD : $PAYLOAD"
-    myCurl --request POST --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_ID/repository/commits" --header "Content-Type: application/json" -d "$PAYLOAD"| jq .
+    myCurl --request POST --header "PRIVATE-TOKEN: $GITLAB_TOKEN" --header "SUDO: $GITLAB_USER_ID" "$GITLAB_API_URL/projects/$PROJECT_ID/repository/commits" --header "Content-Type: application/json" -d "$PAYLOAD"| jq .
 else
     printinfo "Toutes les versions des microservices sont déjà en place dans le projet $PROJECT_NAMESPACE/$PROJECT_NAME"
 fi
