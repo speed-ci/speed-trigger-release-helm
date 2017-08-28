@@ -104,7 +104,7 @@ do
                 printinfo "JOB_RELEASE_STATUS : $JOB_RELEASE_STATUS"
     
                 if [[ $JOB_RELEASE_STATUS == "skipped" ]]; then
-                    printerror "Les étapes préalables à la release doivent être effectuées avec succès, release interrompue"
+                    printerror "Les étapes préalables à la release sur le projet $PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME doivent être effectuées avec succès, release interrompue"
                     exit 1
                 elif [[ $JOB_RELEASE_STATUS == "success" ]]; then
                     echo ""
