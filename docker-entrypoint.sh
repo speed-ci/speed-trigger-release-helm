@@ -12,7 +12,7 @@ GITLAB_CI_USER="gitlab-ci-sln"
 POLLLING_PERIOD=5
 DOCKER_DIR=${DOCKER_DIR:-"docker"}
 SERVICE_EXT=${SERVICE_EXT:-".service"}
-REC_ENV=${:-"rec"}
+REC_ENV=${REC_ENV:-"rec"}
 
 if [ ! -d $DOCKER_DIR ]; then
     printerror "Impossible de trouver le dossier $DOCKER_DIR contenant les services docker dans le projet"
