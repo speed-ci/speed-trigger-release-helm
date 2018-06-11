@@ -197,7 +197,7 @@ do
     if [[ $VERSION_FOUND == 0 ]]; then
         printinfo "Prise en compte de la version applicative $PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME:$PROJECT_RELEASE_VERSION-part-of-$RELEASE_VERSION"
         ACTION_NUM=`echo $PAYLOAD | jq '.actions | length'`
-        CONTENT=`cat $SERVICE | sed -e "s/$PROJECT_NAMESPACE\/$PROJECT_RELEASE_NAME.*/$PROJECT_NAMESPACE\/$PROJECT_RELEASE_NAME:$PROJECT_RELEASE_VERSION-part-of-$RELEASE_VERSION/g"`
+        CONTENT=`cat $SERVICE | sed -e "s/$PROJECT_NAMESPACE\/$PROJECT_RELEASE_NAME\S*/$PROJECT_NAMESPACE\/$PROJECT_RELEASE_NAME:$PROJECT_RELEASE_VERSION-part-of-$RELEASE_VERSION/g"`
         PAYLOAD=`jq --arg action_num "$ACTION_NUM" --arg action "update" '. | .actions[$action_num|tonumber].action=$action' <<< $PAYLOAD`
         PAYLOAD=`jq --arg action_num "$ACTION_NUM" --arg content "$CONTENT" '. | .actions[$action_num|tonumber].content=$content' <<< $PAYLOAD`
         PAYLOAD=`jq --arg action_num "$ACTION_NUM" --arg file_path "$SERVICE" '. | .actions[$action_num|tonumber].file_path=$file_path' <<< $PAYLOAD`
