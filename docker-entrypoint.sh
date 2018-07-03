@@ -50,7 +50,7 @@ else
     LAST_NEW_COMMIT=`myCurl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_ID/repository/compare?from=release&to=dev" | jq -r .commit.id`
     if [[ $LAST_NEW_COMMIT != "null" ]]; then
         printinfo "Mise à jour de la branche release avec les derniers commits de dev"
-        RELEASE_MR_IID=`myCurl --request POST --header "PRIVATE-TOKEN: $GITLAB_TOKEN" --header "SUDO: $GITLAB_USER_ID" "$GITLAB_API_URL/projects/$PROJECT_ID/merge_requests" -d "source_branch=master" -d "target_branch=release" -d "title=chore(release): Update release branch with $LAST_NEW_COMMIT to prepare release" | jq .iid`
+        RELEASE_MR_IID=`myCurl --request POST --header "PRIVATE-TOKEN: $GITLAB_TOKEN" --header "SUDO: $GITLAB_USER_ID" "$GITLAB_API_URL/projects/$PROJECT_ID/merge_requests" -d "source_branch=dev" -d "target_branch=release" -d "title=chore(release): Update release branch with $LAST_NEW_COMMIT to prepare release" | jq .iid`
         printinfo "Lien d'accès à la merge request : $GITLAB_URL/$PROJECT_NAMESPACE/$PROJECT_NAME/merge_requests/$RELEASE_MR_IID"
         myCurl --request PUT --header "PRIVATE-TOKEN: $GITLAB_TOKEN" --header "SUDO: $GITLAB_USER_ID" "$GITLAB_API_URL/projects/$PROJECT_ID/merge_requests/$RELEASE_MR_IID/merge" | jq .
     fi
