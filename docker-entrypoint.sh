@@ -197,7 +197,7 @@ do
     VERSION_FOUND=`yq r $VALUES_FILE_FROM_RELEASE $ALIAS.image.tag | grep $PROJECT_RELEASE_VERSION-part-of-$RELEASE_VERSION | wc -l`
     if [[ $VERSION_FOUND == 0 ]]; then
         printinfo "Prise en compte de la version applicative $PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME:$PROJECT_RELEASE_VERSION-part-of-$RELEASE_VERSION"
-        ALIAS==${PROJECT_RELEASE_NAME#$PROJECT_NAMESPACE-}
+        ALIAS=${PROJECT_RELEASE_NAME#$PROJECT_NAMESPACE-}
         yq w -i $HELM_VALUES $ALIAS.image.tag $PROJECT_RELEASE_VERSION-part-of-$RELEASE_VERSION
         
         if  [[ -z $CHANGELOG ]]; then CHANGELOG=$(printf "### Versions des microservices\n"); fi
