@@ -219,7 +219,8 @@ if [[ $HAS_FAILED_JOB == "true" ]]; then
 fi
 
 printmainstep "Mise à jour du fichier de values dans la branche release avec les versions des microservices"
-if git diff --exit-code --name-only $HELM_VALUES; then
+VALUES_HAS_CHANGED=`git status --porcelain $HELM_VALUES | wc -l`
+if [[ $VALUES_HAS_CHANGED != 0 ]]; then
     ACTION_NUM=`echo $PAYLOAD | jq '.actions | length'`
     PAYLOAD=`jq --arg action_num "$ACTION_NUM" --arg action "update" '. | .actions[$action_num|tonumber].action=$action' <<< $PAYLOAD`
     PAYLOAD=`jq --arg action_num "$ACTION_NUM" --arg content "cat $HELM_VALUES" '. | .actions[$action_num|tonumber].content=$content' <<< $PAYLOAD`
