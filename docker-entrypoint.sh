@@ -10,12 +10,11 @@ int_gitlab_api_env
 
 GITLAB_CI_USER="gitlab-ci-sln"
 POLLLING_PERIOD=5
-DOCKER_DIR=${DOCKER_DIR:-"docker"}
-SERVICE_EXT=${SERVICE_EXT:-".service"}
+HELM_VALUES="values.yaml"
 REC_ENV=${REC_ENV:-"rec"}
 
-if [ ! -d $DOCKER_DIR ]; then
-    printerror "Impossible de trouver le dossier $DOCKER_DIR contenant les services docker dans le projet"
+if [ ! -f $HELM_VALUES ]; then
+    printerror "Impossible de trouver le fichier Helm de values $HELM_VALUES contenant les images des services docker du projet"
     exit 1
 fi    
 
@@ -64,10 +63,11 @@ if [[ $REC_BRANCH == "null" ]]; then
     myCurl --request POST --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_ID/repository/branches" -d "branch=$REC_ENV" -d "ref=release" | jq .
 fi
 
-SERVICE_LIST=$DOCKER_DIR/*$SERVICE_EXT
-for SERVICE in $SERVICE_LIST
+SERVICE_IMAGE_LIST="repositories.txt"
+yq r -j $HELM_VALUES | jq -r '.. | .repository? // empty' > $SERVICE_IMAGE_LIST
+for SERVICE in $(cat $SERVICE_IMAGE_LIST)
 do
-    PROJECT_RELEASE_NAME=$(basename "$SERVICE" $SERVICE_EXT)
+    PROJECT_RELEASE_NAME=${SERVICE##*/}
     PROJECT_RELEASE_NAME=${PROJECT_RELEASE_NAME%--*}
     if [[ $PROJECT_RELEASE_NAME == "*" ]]; then
         printerror "Aucun service docker trouvé respectant le format $SERVICE_LIST"
@@ -162,10 +162,14 @@ JSON
 )
 
 PAYLOAD=`jq --arg commit_message "chore(release): bump services versions to $RELEASE_VERSION" '. | .commit_message=$commit_message' <<< $PAYLOAD`
+VALUES_URL_ENCODED=`echo $HELM_VALUES | sed -e "s/\//%2F/g" | sed -e "s/\./%2E/g"`
+VALUES_FILE_FROM_RELEASE="values-from-release.yaml"
+`myCurl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_ID/repository/files/$VALUES_URL_ENCODED/raw?ref=release"` > $VALUES_FILE_FROM_RELEASE
+CONTENT=`cat $HELM_VALUES`
 
-for SERVICE in $SERVICE_LIST
+for SERVICE in $(cat $SERVICE_IMAGE_LIST)
 do
-    PROJECT_RELEASE_NAME=$(basename "$SERVICE" $SERVICE_EXT)
+    PROJECT_RELEASE_NAME=${SERVICE##*/}
     PROJECT_RELEASE_NAME=${PROJECT_RELEASE_NAME%--*}
     PROJECT_RELEASE_ID=${PROJECT_RELEASE_IDS[$PROJECT_RELEASE_NAME]}
     JOB_RELEASE_ID=${JOB_RELEASE_IDS[$PROJECT_RELEASE_NAME]}
@@ -191,16 +195,11 @@ do
        printinfo "L'image docker $IMAGE:$PROJECT_RELEASE_VERSION-part-of-$RELEASE_VERSION déjà présente dans Artifactory, docker push inutile"
     fi
     
-    SERVICE_URL_ENCODED=`echo $SERVICE | sed -e "s/\//%2F/g" | sed -e "s/\./%2E/g"`
-    SERVICE_FILE_FROM_RELEASE=`myCurl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_ID/repository/files/$SERVICE_URL_ENCODED/raw?ref=release"`
-    VERSION_FOUND=`echo $SERVICE_FILE_FROM_RELEASE | grep $PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME:$PROJECT_RELEASE_VERSION-part-of-$RELEASE_VERSION | wc -l`
+    VERSION_FOUND=`yq r $VALUES_FILE_FROM_RELEASE $ALIAS.image.tag | grep $PROJECT_RELEASE_VERSION-part-of-$RELEASE_VERSION | wc -l`
     if [[ $VERSION_FOUND == 0 ]]; then
         printinfo "Prise en compte de la version applicative $PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME:$PROJECT_RELEASE_VERSION-part-of-$RELEASE_VERSION"
-        ACTION_NUM=`echo $PAYLOAD | jq '.actions | length'`
-        CONTENT=`cat $SERVICE | sed -e "s/$PROJECT_NAMESPACE\/$PROJECT_RELEASE_NAME\S*/$PROJECT_NAMESPACE\/$PROJECT_RELEASE_NAME:$PROJECT_RELEASE_VERSION-part-of-$RELEASE_VERSION/g"`
-        PAYLOAD=`jq --arg action_num "$ACTION_NUM" --arg action "update" '. | .actions[$action_num|tonumber].action=$action' <<< $PAYLOAD`
-        PAYLOAD=`jq --arg action_num "$ACTION_NUM" --arg content "$CONTENT" '. | .actions[$action_num|tonumber].content=$content' <<< $PAYLOAD`
-        PAYLOAD=`jq --arg action_num "$ACTION_NUM" --arg file_path "$SERVICE" '. | .actions[$action_num|tonumber].file_path=$file_path' <<< $PAYLOAD`
+        ALIAS==${PROJECT_RELEASE_NAME#$PROJECT_NAMESPACE-}
+        yq w -i $HELM_VALUES $ALIAS.image.tag $PROJECT_RELEASE_VERSION-part-of-$RELEASE_VERSION
         
         if  [[ -z $CHANGELOG ]]; then CHANGELOG=$(printf "### Versions des microservices\n"); fi
         CHANGELOG=$(printf "$CHANGELOG\n - Service **$SERVICE** : Projet Gitlab associé **$PROJECT_RELEASE_NAME [$PROJECT_RELEASE_VERSION]($GITLAB_URL/$PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME/tags/$PROJECT_RELEASE_VERSION)**")
@@ -220,13 +219,20 @@ if [[ $HAS_FAILED_JOB == "true" ]]; then
     exit 1;
 fi
 
-printmainstep "Mise à jour des fichiers de services dans la branche release avec les versions des microservices"
-ACTION_NUM=`echo $PAYLOAD | jq '.actions | length'`
-if [[ $ACTION_NUM != 0 ]]; then
-    echo "PAYLOAD : $PAYLOAD"
-    myCurl --request POST --header "PRIVATE-TOKEN: $GITLAB_TOKEN" --header "SUDO: $GITLAB_USER_ID" "$GITLAB_API_URL/projects/$PROJECT_ID/repository/commits" --header "Content-Type: application/json" -d "$PAYLOAD"| jq .
-else
-    printinfo "Toutes les versions des microservices sont déjà en place dans le projet $PROJECT_NAMESPACE/$PROJECT_NAME"
+printmainstep "Mise à jour du fichier de values dans la branche release avec les versions des microservices"
+if git diff --exit-code --name-only $HELM_VALUES; then
+    ACTION_NUM=`echo $PAYLOAD | jq '.actions | length'`
+    PAYLOAD=`jq --arg action_num "$ACTION_NUM" --arg action "update" '. | .actions[$action_num|tonumber].action=$action' <<< $PAYLOAD`
+    PAYLOAD=`jq --arg action_num "$ACTION_NUM" --arg content "cat $HELM_VALUES" '. | .actions[$action_num|tonumber].content=$content' <<< $PAYLOAD`
+    PAYLOAD=`jq --arg action_num "$ACTION_NUM" --arg file_path "$HELM_VALUES" '. | .actions[$action_num|tonumber].file_path=$file_path' <<< $PAYLOAD`
+
+    ACTION_NUM=`echo $PAYLOAD | jq '.actions | length'`
+    if [[ $ACTION_NUM != 0 ]]; then
+        echo "PAYLOAD : $PAYLOAD"
+        myCurl --request POST --header "PRIVATE-TOKEN: $GITLAB_TOKEN" --header "SUDO: $GITLAB_USER_ID" "$GITLAB_API_URL/projects/$PROJECT_ID/repository/commits" --header "Content-Type: application/json" -d "$PAYLOAD"| jq .
+    else
+        printinfo "Toutes les versions des microservices sont déjà en place dans le projet $PROJECT_NAMESPACE/$PROJECT_NAME"
+    fi
 fi
 
 RELEASE_LAST_NEW_COMMIT=`myCurl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_ID/repository/compare?from=$REC_ENV&to=release" | jq -r .commit.id`
@@ -244,6 +250,3 @@ else
     printinfo "- création du tag $RELEASE_VERSION dans la branche release inutile"
     printinfo "- mise à jour de la branche $REC_ENV à partir de la branche release inutile"
 fi
-
-
-
