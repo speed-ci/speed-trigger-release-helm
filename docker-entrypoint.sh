@@ -164,8 +164,7 @@ JSON
 PAYLOAD=`jq --arg commit_message "chore(release): bump services versions to $RELEASE_VERSION" '. | .commit_message=$commit_message' <<< $PAYLOAD`
 VALUES_URL_ENCODED=`echo $HELM_VALUES | sed -e "s/\//%2F/g" | sed -e "s/\./%2E/g"`
 VALUES_FILE_FROM_RELEASE="values-from-release.yaml"
-`myCurl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_ID/repository/files/$VALUES_URL_ENCODED/raw?ref=release"` > $VALUES_FILE_FROM_RELEASE
-CONTENT=`cat $HELM_VALUES`
+`myCurl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" -o $VALUES_FILE_FROM_RELEASE "$GITLAB_API_URL/projects/$PROJECT_ID/repository/files/$VALUES_URL_ENCODED/raw?ref=release"`
 
 for SERVICE in $(cat $SERVICE_IMAGE_LIST)
 do
