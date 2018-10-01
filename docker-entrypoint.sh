@@ -222,8 +222,9 @@ printmainstep "Mise à jour du fichier de values dans la branche release avec le
 VALUES_HAS_CHANGED=`git status --porcelain $HELM_VALUES | wc -l`
 if [[ $VALUES_HAS_CHANGED != 0 ]]; then
     ACTION_NUM=`echo $PAYLOAD | jq '.actions | length'`
+    CONTENT=`cat $HELM_VALUES`
     PAYLOAD=`jq --arg action_num "$ACTION_NUM" --arg action "update" '. | .actions[$action_num|tonumber].action=$action' <<< $PAYLOAD`
-    PAYLOAD=`jq --arg action_num "$ACTION_NUM" --arg content "cat $HELM_VALUES" '. | .actions[$action_num|tonumber].content=$content' <<< $PAYLOAD`
+    PAYLOAD=`jq --arg action_num "$ACTION_NUM" --arg content "$CONTENT" '. | .actions[$action_num|tonumber].content=$content' <<< $PAYLOAD`
     PAYLOAD=`jq --arg action_num "$ACTION_NUM" --arg file_path "$HELM_VALUES" '. | .actions[$action_num|tonumber].file_path=$file_path' <<< $PAYLOAD`
 
     ACTION_NUM=`echo $PAYLOAD | jq '.actions | length'`
