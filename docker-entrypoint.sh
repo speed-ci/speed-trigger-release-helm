@@ -199,8 +199,10 @@ do
     if [[ $VERSION_FOUND == 0 ]]; then
         printinfo "Prise en compte de la version applicative $PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME:$PROJECT_RELEASE_VERSION-part-of-$RELEASE_VERSION"
         ALIAS=${PROJECT_RELEASE_NAME#$PROJECT_NAMESPACE-}
-        yq w -i $HELM_VALUES $ALIAS.image.tag $PROJECT_RELEASE_VERSION-part-of-$RELEASE_VERSION
-        
+        for COMPLETE_ALIAS in `yq r -j $HELM_VALUES | jq -r 'keys[]' | grep ^$ALIAS`
+        do
+            yq w -i $HELM_VALUES $COMPLETE_ALIAS.image.tag $PROJECT_RELEASE_VERSION-part-of-$RELEASE_VERSION
+        done
         if  [[ -z $CHANGELOG ]]; then CHANGELOG=$(printf "### Versions des microservices\n"); fi
         CHANGELOG=$(printf "$CHANGELOG\n - Service **$SERVICE** : Projet Gitlab associé **$PROJECT_RELEASE_NAME [$PROJECT_RELEASE_VERSION]($GITLAB_URL/$PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME/tags/$PROJECT_RELEASE_VERSION)**")
     else
