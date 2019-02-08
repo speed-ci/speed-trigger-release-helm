@@ -202,7 +202,7 @@ do
         for COMPLETE_ALIAS in `yq r -j $HELM_VALUES | jq -r 'keys[]' | grep ^$ALIAS`
         do
             yq w -i $HELM_VALUES $COMPLETE_ALIAS.image.tag $PROJECT_RELEASE_VERSION-part-of-$RELEASE_VERSION
-            CHANGELOG=$(printf "$CHANGELOG\n - Service **$COMPLETE_ALIAS** : Projet Gitlab associé **$PROJECT_RELEASE_NAME [$PROJECT_RELEASE_VERSION]($GITLAB_URL/$PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME/tags/$PROJECT_RELEASE_VERSION)**")
+            CHANGELOG=$(printf "$CHANGELOG\n - Service **$PROJECT_NAMESPACE-$COMPLETE_ALIAS** : Projet Gitlab associé **$PROJECT_RELEASE_NAME [$PROJECT_RELEASE_VERSION]($GITLAB_URL/$PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME/tags/$PROJECT_RELEASE_VERSION)**")
         done
         if  [[ -z $CHANGELOG ]]; then CHANGELOG=$(printf "### Versions des microservices\n"); fi
     else
