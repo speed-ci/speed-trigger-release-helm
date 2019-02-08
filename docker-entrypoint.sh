@@ -65,7 +65,7 @@ if [[ $REC_BRANCH == "null" ]]; then
 fi
 
 SERVICE_IMAGE_LIST="repositories.txt"
-yq r -j $HELM_VALUES | jq -r '.. | .repository? // empty' > $SERVICE_IMAGE_LIST
+yq r -j $HELM_VALUES | jq -r '.. | .repository? // empty' | uniq > $SERVICE_IMAGE_LIST
 for SERVICE in $(cat $SERVICE_IMAGE_LIST)
 do
     PROJECT_RELEASE_NAME=${SERVICE##*/}
@@ -202,9 +202,9 @@ do
         for COMPLETE_ALIAS in `yq r -j $HELM_VALUES | jq -r 'keys[]' | grep ^$ALIAS`
         do
             yq w -i $HELM_VALUES $COMPLETE_ALIAS.image.tag $PROJECT_RELEASE_VERSION-part-of-$RELEASE_VERSION
+            CHANGELOG=$(printf "$CHANGELOG\n - Service **$COMPLETE_ALIAS** : Projet Gitlab associé **$PROJECT_RELEASE_NAME [$PROJECT_RELEASE_VERSION]($GITLAB_URL/$PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME/tags/$PROJECT_RELEASE_VERSION)**")
         done
         if  [[ -z $CHANGELOG ]]; then CHANGELOG=$(printf "### Versions des microservices\n"); fi
-        CHANGELOG=$(printf "$CHANGELOG\n - Service **$SERVICE** : Projet Gitlab associé **$PROJECT_RELEASE_NAME [$PROJECT_RELEASE_VERSION]($GITLAB_URL/$PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME/tags/$PROJECT_RELEASE_VERSION)**")
     else
         printinfo "La version applicative $PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME:$PROJECT_RELEASE_VERSION-part-of-$RELEASE_VERSION est déjà en place sur le projet $PROJECT_NAMESPACE/$PROJECT_NAME"
     fi
