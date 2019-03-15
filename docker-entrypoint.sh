@@ -65,7 +65,7 @@ if [[ $REC_BRANCH == "null" ]]; then
 fi
 
 SERVICE_IMAGE_LIST="repositories.txt"
-yq r -j $HELM_VALUES | jq -r '.. | .repository? // empty' | uniq > $SERVICE_IMAGE_LIST
+yq r -j $HELM_VALUES | jq -r '.. | .repository? // empty' | grep $PROJECT_NAMESPACE | uniq > $SERVICE_IMAGE_LIST
 for SERVICE in $(cat $SERVICE_IMAGE_LIST)
 do
     PROJECT_RELEASE_NAME=${SERVICE##*/}
