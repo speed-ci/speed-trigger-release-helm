@@ -12,6 +12,8 @@ GITLAB_CI_USER="gitlab-ci-sln"
 POLLLING_PERIOD=5
 HELM_VALUES="values.yaml"
 CHART_FILE="Chart.yaml"
+DOCKER_DIR=${DOCKER_DIR:-"docker"}
+SERVICE_EXT=${SERVICE_EXT:-".service"}
 REC_ENV=${REC_ENV:-"rec"}
 
 if [ ! -f $HELM_VALUES ]; then
@@ -201,8 +203,23 @@ do
         ALIAS=${PROJECT_RELEASE_NAME#$PROJECT_NAMESPACE-}
         for COMPLETE_ALIAS in `yq r -j $HELM_VALUES | jq -r 'keys[]' | grep ^$ALIAS`
         do
+            printinfo "Injection de la version $PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME:$PROJECT_RELEASE_VERSION-part-of-$RELEASE_VERSION dans le fichier de values helm"
             yq w -i $HELM_VALUES $COMPLETE_ALIAS.image.tag $PROJECT_RELEASE_VERSION-part-of-$RELEASE_VERSION
             CHANGELOG=$(printf "$CHANGELOG\n - Service **$PROJECT_NAMESPACE-$COMPLETE_ALIAS** : Projet Gitlab associé **$PROJECT_RELEASE_NAME [$PROJECT_RELEASE_VERSION]($GITLAB_URL/$PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME/tags/$PROJECT_RELEASE_VERSION)**")
+            if [ -d $DOCKER_DIR ]; then
+                SERVICE=$DOCKER_DIR/$PROJECT_NAMESPACE-$COMPLETE_ALIAS$SERVICE_EXT
+                SERVICE_URL_ENCODED=`echo $SERVICE | sed -e "s/\//%2F/g" | sed -e "s/\./%2E/g"`
+                SERVICE_FILE_FROM_RELEASE=`myCurl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_ID/repository/files/$SERVICE_URL_ENCODED/raw?ref=release"`
+                VERSION_FOUND=`echo $SERVICE_FILE_FROM_RELEASE | grep $PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME:$PROJECT_RELEASE_VERSION-part-of-$RELEASE_VERSION | wc -l`
+                if [[ $VERSION_FOUND == 0 ]]; then
+                    printinfo "Injection de la version $PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME:$PROJECT_RELEASE_VERSION-part-of-$RELEASE_VERSION dans le fichier de service systemd"
+                    ACTION_NUM=`echo $PAYLOAD | jq '.actions | length'`
+                    CONTENT=`cat $SERVICE | sed -e "s/$PROJECT_NAMESPACE\/$PROJECT_RELEASE_NAME\S*/$PROJECT_NAMESPACE\/$PROJECT_RELEASE_NAME:$PROJECT_RELEASE_VERSION-part-of-$RELEASE_VERSION/g"`
+                    PAYLOAD=`jq --arg action_num "$ACTION_NUM" --arg action "update" '. | .actions[$action_num|tonumber].action=$action' <<< $PAYLOAD`
+                    PAYLOAD=`jq --arg action_num "$ACTION_NUM" --arg content "$CONTENT" '. | .actions[$action_num|tonumber].content=$content' <<< $PAYLOAD`
+                    PAYLOAD=`jq --arg action_num "$ACTION_NUM" --arg file_path "$SERVICE" '. | .actions[$action_num|tonumber].file_path=$file_path' <<< $PAYLOAD`
+                fi
+            fi
         done
         if  [[ -z $CHANGELOG ]]; then CHANGELOG=$(printf "### Versions des microservices\n"); fi
     else
