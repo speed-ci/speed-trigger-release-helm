@@ -214,7 +214,7 @@ do
                 if [[ $VERSION_FOUND == 0 ]]; then
                     printinfo "Injection de la version $PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME:$PROJECT_RELEASE_VERSION-part-of-$RELEASE_VERSION dans le fichier de service systemd"
                     ACTION_NUM=`echo $PAYLOAD | jq '.actions | length'`
-                    CONTENT=`cat $SERVICE | sed -e "s/$PROJECT_NAMESPACE\/$PROJECT_RELEASE_NAME\S*/$PROJECT_NAMESPACE\/$PROJECT_RELEASE_NAME:$PROJECT_RELEASE_VERSION-part-of-$RELEASE_VERSION/g"`
+                    CONTENT=`cat $SERVICE | sed -e "s/$PROJECT_NAMESPACE\/$PROJECT_RELEASE_NAME\S*/$PROJECT_NAMESPACE\/$PROJECT_RELEASE_NAME:$PROJECT_RELEASE_VERSION-part-of-$RELEASE_VERSION/g" | sed -e "s/isinc\/$PROJECT_RELEASE_NAME\S*/$PROJECT_NAMESPACE\/$PROJECT_RELEASE_NAME:$PROJECT_RELEASE_VERSION-part-of-$RELEASE_VERSION/g"`
                     PAYLOAD=`jq --arg action_num "$ACTION_NUM" --arg action "update" '. | .actions[$action_num|tonumber].action=$action' <<< $PAYLOAD`
                     PAYLOAD=`jq --arg action_num "$ACTION_NUM" --arg content "$CONTENT" '. | .actions[$action_num|tonumber].content=$content' <<< $PAYLOAD`
                     PAYLOAD=`jq --arg action_num "$ACTION_NUM" --arg file_path "$SERVICE" '. | .actions[$action_num|tonumber].file_path=$file_path' <<< $PAYLOAD`
