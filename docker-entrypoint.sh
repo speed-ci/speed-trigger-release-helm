@@ -210,7 +210,7 @@ do
             if [ -d $DOCKER_DIR ]; then
                 REPLICAS_COUNT=`yq r $HELM_VALUES $COMPLETE_ALIAS.replicaCount`
                 if [[ $REPLICAS_COUNT == "null" ]]; then REPLICAS_COUNT=1; fi
-                if [[ $REPLICAS_COUNT > 1 ]]; then
+                if [[ $REPLICAS_COUNT > 0 ]]; then
                     for (( replica=1; replica<=$REPLICAS_COUNT; replica++ ))
                     do
                         if [[ $replica > 1 ]]; then ORDINAL="--$replica"; fi  
