@@ -207,24 +207,36 @@ do
             yq w -i $HELM_VALUES $COMPLETE_ALIAS.image.tag $PROJECT_RELEASE_VERSION-part-of-$RELEASE_VERSION
             CHANGELOG=$(printf "$CHANGELOG\n - Service **$PROJECT_NAMESPACE-$COMPLETE_ALIAS** : Projet Gitlab associé **$PROJECT_RELEASE_NAME [$PROJECT_RELEASE_VERSION]($GITLAB_URL/$PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME/tags/$PROJECT_RELEASE_VERSION)**")
             if [ -d $DOCKER_DIR ]; then
-                SERVICE=$DOCKER_DIR/$PROJECT_NAMESPACE-$COMPLETE_ALIAS$SERVICE_EXT
-                if [[ ! -f $SERVICE && $ALIAS == "jobs" ]]; then
-                    STREAM_NAME=`yq r $HELM_VALUES $COMPLETE_ALIAS.streamName`
-                    if [[ $STREAM_NAME == "null" ]]; then
-                        STREAM_NAME=`yq r $HELM_VALUES $COMPLETE_ALIAS.task.name`
-                    fi
-                    SERVICE=`grep -rl $STREAM_NAME docker`
-                fi
-                SERVICE_URL_ENCODED=`echo $SERVICE | sed -e "s/\//%2F/g" | sed -e "s/\./%2E/g"`
-                SERVICE_FILE_FROM_RELEASE=`myCurl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_ID/repository/files/$SERVICE_URL_ENCODED/raw?ref=release"`
-                VERSION_FOUND=`echo $SERVICE_FILE_FROM_RELEASE | grep $PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME:$PROJECT_RELEASE_VERSION-part-of-$RELEASE_VERSION | wc -l`
-                if [[ $VERSION_FOUND == 0 ]]; then
-                    printinfo "Injection de la version $PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME:$PROJECT_RELEASE_VERSION-part-of-$RELEASE_VERSION dans le fichier de service systemd $SERVICE"
-                    ACTION_NUM=`echo $PAYLOAD | jq '.actions | length'`
-                    CONTENT=`cat $SERVICE | sed -e "s/$PROJECT_NAMESPACE\/$PROJECT_RELEASE_NAME\S*/$PROJECT_NAMESPACE\/$PROJECT_RELEASE_NAME:$PROJECT_RELEASE_VERSION-part-of-$RELEASE_VERSION/g" | sed -e "s/isinc\/$PROJECT_RELEASE_NAME\S*/$PROJECT_NAMESPACE\/$PROJECT_RELEASE_NAME:$PROJECT_RELEASE_VERSION-part-of-$RELEASE_VERSION/g"`
-                    PAYLOAD=`jq --arg action_num "$ACTION_NUM" --arg action "update" '. | .actions[$action_num|tonumber].action=$action' <<< $PAYLOAD`
-                    PAYLOAD=`jq --arg action_num "$ACTION_NUM" --arg content "$CONTENT" '. | .actions[$action_num|tonumber].content=$content' <<< $PAYLOAD`
-                    PAYLOAD=`jq --arg action_num "$ACTION_NUM" --arg file_path "$SERVICE" '. | .actions[$action_num|tonumber].file_path=$file_path' <<< $PAYLOAD`
+                REPLICAS_COUNT=`yq r $HELM_VALUES $COMPLETE_ALIAS.replicaCount`
+                if [[ $REPLICAS_COUNT == "null" ]]; then REPLICAS_COUNT=1; fi
+                if [[ $REPLICAS_COUNT > 1 ]]; then
+                    for (( replica=1; replica<=$REPLICAS_COUNT; replica++ ))
+                    do
+                        if [[ $replica > 1 ]]; then ORDINAL="--$replica"; fi  
+                        SERVICE=$DOCKER_DIR/$PROJECT_NAMESPACE-$COMPLETE_ALIAS$ORDINAL$SERVICE_EXT
+                        if [[ ! -f $SERVICE && $ALIAS == "jobs" ]]; then
+                            STREAM_NAME=`yq r $HELM_VALUES $COMPLETE_ALIAS.streamName`
+                            if [[ $STREAM_NAME == "null" ]]; then
+                                STREAM_NAME=`yq r $HELM_VALUES $COMPLETE_ALIAS.task.name`
+                            fi
+                            SERVICE=`grep -rl $STREAM_NAME docker`
+                        fi
+                        if [[ -f $SERVICE ]]; then
+                            SERVICE_URL_ENCODED=`echo $SERVICE | sed -e "s/\//%2F/g" | sed -e "s/\./%2E/g"`
+                            SERVICE_FILE_FROM_RELEASE=`myCurl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects/$PROJECT_ID/repository/files/$SERVICE_URL_ENCODED/raw?ref=release"`
+                            VERSION_FOUND=`echo $SERVICE_FILE_FROM_RELEASE | grep $PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME:$PROJECT_RELEASE_VERSION-part-of-$RELEASE_VERSION | wc -l`
+                            if [[ $VERSION_FOUND == 0 ]]; then
+                                printinfo "Injection de la version $PROJECT_NAMESPACE/$PROJECT_RELEASE_NAME:$PROJECT_RELEASE_VERSION-part-of-$RELEASE_VERSION dans le fichier de service systemd $SERVICE"
+                                ACTION_NUM=`echo $PAYLOAD | jq '.actions | length'`
+                                CONTENT=`cat $SERVICE | sed -e "s/$PROJECT_NAMESPACE\/$PROJECT_RELEASE_NAME\S*/$PROJECT_NAMESPACE\/$PROJECT_RELEASE_NAME:$PROJECT_RELEASE_VERSION-part-of-$RELEASE_VERSION/g" | sed -e "s/isinc\/$PROJECT_RELEASE_NAME\S*/$PROJECT_NAMESPACE\/$PROJECT_RELEASE_NAME:$PROJECT_RELEASE_VERSION-part-of-$RELEASE_VERSION/g"`
+                                PAYLOAD=`jq --arg action_num "$ACTION_NUM" --arg action "update" '. | .actions[$action_num|tonumber].action=$action' <<< $PAYLOAD`
+                                PAYLOAD=`jq --arg action_num "$ACTION_NUM" --arg content "$CONTENT" '. | .actions[$action_num|tonumber].content=$content' <<< $PAYLOAD`
+                                PAYLOAD=`jq --arg action_num "$ACTION_NUM" --arg file_path "$SERVICE" '. | .actions[$action_num|tonumber].file_path=$file_path' <<< $PAYLOAD`
+                            fi
+                        else
+                            printwarn "Le fichier de service $SERVICE est introuvable"
+                        fi                        
+                    done                
                 fi
             fi
         done
