@@ -81,7 +81,8 @@ do
 
     if  [[ -z ${PROJECT_RELEASE_IDS[$PROJECT_RELEASE_NAME]} ]]; then
     
-        PROJECT_RELEASE_ID=`myCurl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects?search=$PROJECT_RELEASE_NAME" | jq --arg project_namespace "$PROJECT_NAMESPACE" '.[] | select(.namespace.name == "\($project_namespace)") | .id'`
+        PROJECT_RELEASE_ID=`myCurl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/projects?search=$PROJECT_RELEASE_NAME" | jq --arg project_namespace "$PROJECT_NAMESPACE" --arg project_name "$PROJECT_RELEASE_NAME" '.[] | select(.namespace.name == "\($project_namespace)" and .name == "\($project_name)") | .id'`
+
         PROJECT_RELEASE_IDS[$PROJECT_RELEASE_NAME]=$PROJECT_RELEASE_ID
         
         if [[ $PROJECT_RELEASE_ID != "null" ]]; then
